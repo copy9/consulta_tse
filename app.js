@@ -21,16 +21,9 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-      headless: false, // Roda com interface pra simular usuário real
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-infobars',
-        '--window-size=1280,720',
-        '--start-maximized'
-      ],
-      executablePath: '/usr/bin/microsoft-edge',
-      defaultViewport: null
+      headless: true, // Volta pro headless pra funcionar no Render
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      executablePath: '/usr/bin/microsoft-edge'
     });
     const page = await browser.newPage();
 
@@ -38,12 +31,12 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
-      waitUntil: 'networkidle0', // Espera tudo carregar, incluindo scripts
+      waitUntil: 'networkidle0', // Espera tudo carregar
       timeout: 60000 
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 300000 }); // 5 minutos pra garantir
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 180000 }); // 3 minutos pra carregar
 
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
