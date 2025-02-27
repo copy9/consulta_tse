@@ -65,29 +65,8 @@ app.post('/verificar', async (req, res) => {
     console.log('Esperando o redirecionamento para a página de resultados...');
 await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
 
-// Passo 3: Verifica se a página carregou corretamente
-console.log('Verificando se a página de resultados carregou corretamente...');
-await page.waitForSelector('body', { timeout: 120000 }); // Espera o corpo da página
-
-// Passo 5: Verifica mensagens de erro ou redirecionamentos
-console.log('Verificando se há mensagens de erro na página...');
-const errorMessage = await page.evaluate(() => {
-  const errorElement = document.querySelector('.error-message') || document.querySelector('.msg-erro'); // Ajustado pro TSE
-  return errorElement ? errorElement.textContent.trim() : null;
-});
-if (errorMessage) {
-  throw new Error(`Erro na página: ${errorMessage}`);
-}
-
-// Passo 4 e ajuste do erro original: Espera o conteúdo com debug
 console.log('Esperando o conteúdo da página de resultados carregar...');
-try {
-  await page.waitForSelector('span.label', { timeout: 180000 });
-} catch (error) {
-  const html = await page.content();
-  console.log('HTML da página de resultados (primeiros 1000 caracteres):', html.substring(0, 1000));
-  throw error;
-} // Ajustado para 3 minutos
+await page.waitForSelector('span.label', { timeout: 180000 }); // Ajustado para 3 minutos
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
