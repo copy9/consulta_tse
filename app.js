@@ -34,8 +34,7 @@ app.post('/verificar', async (req, res) => {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
 
     console.log('Carregando a página do TSE...');
-    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2' });
-
+   await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2', timeout: 60000 });
     console.log('Esperando o formulário de login...');
     await page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 });
 
