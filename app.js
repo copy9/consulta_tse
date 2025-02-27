@@ -22,20 +22,27 @@ app.post('/verificar', async (req, res) => {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security', '--disable-features=IsolateOrigins,site-per-process'],
       executablePath: '/usr/bin/microsoft-edge'
     });
     const page = await browser.newPage();
 
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/108.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+    });
 
     console.log('Carregando a página do TSE...');
-    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2', timeout: 120000 });
+    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
+      waitUntil: 'networkidle2', 
+      timeout: 120000 
+    });
 
     console.log('Esperando o formulário de login...');
     await page.waitForFunction(
       () => document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="titulo-cpf-nome"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null,
-      { timeout: 180000 }
+      { timeout: 300000 } // 5 minutos pra garantir
     );
 
     // Função para digitar lentamente com XPath
@@ -62,10 +69,10 @@ app.post('/verificar', async (req, res) => {
     await button.click();
 
     console.log('Esperando o redirecionamento para a página de resultados...');
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 180000 });
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 300000 });
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
-    await page.waitForSelector('div.data-box', { timeout: 180000 });
+    await page.waitForSelector('div.data-box', { timeout: 300000 });
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
