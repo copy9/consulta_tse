@@ -36,7 +36,15 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 });
+    const cpfInput = await Promise.race([
+      page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 }),
+      page.waitForSelector('input[formcontrolname="tituloCpfNome"]', { timeout: 90000 }),
+      page.waitForSelector('input[type="text"]', { timeout: 90000 })
+    ]);
+    if (!cpfInput) {
+      await page.screenshot({ path: 'debug_form.png' });
+      throw new Error('Campo CPF não encontrado na página');
+    }
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
