@@ -21,7 +21,7 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-      headless: true, // Volta pro headless pra funcionar no Render
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       executablePath: '/usr/bin/microsoft-edge'
     });
@@ -31,12 +31,12 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
-      waitUntil: 'networkidle0', // Espera tudo carregar
+      waitUntil: 'networkidle2', // Volta pro que funcionava
       timeout: 60000 
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 180000 }); // 3 minutos pra carregar
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 }); // 90s que já dava certo
 
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
@@ -63,7 +63,7 @@ app.post('/verificar', async (req, res) => {
     await page.click('button.btn-tse');
 
     console.log('Esperando o redirecionamento para a página de resultados...');
-    await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 180000 });
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 180000 });
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
     await page.waitForSelector('div.data-box', { timeout: 180000 });
