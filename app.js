@@ -21,41 +21,42 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-  headless: 'new',
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  executablePath: '/usr/bin/microsoft-edge' // Força o caminho do Edge direto no código
-});
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      executablePath: '/usr/bin/microsoft-edge' // Força o caminho do Edge direto no código
+    });
     const page = await browser.newPage();
-
-    // Restante do código...
-
-    // Restante do código...
 
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
 
     console.log('Carregando a página do TSE...');
-   await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2', timeout: 60000 });
-    console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 });
+    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2', timeout: 60000 });
 
-    // Função para digitar lentamente
-    async function typeSlowly(selector, text) {
+    console.log('Esperando o formulário de login...');
+    await page.waitForXPath('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="titulo-cpf-nome"]', { timeout: 90000 });
+
+    // Função para digitar lentamente com XPath
+    async function typeSlowlyXPath(page, xpath, text) {
+      const [element] = await page.$x(xpath);
+      if (!element) throw new Error(`Elemento no XPath ${xpath} não encontrado`);
       for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 200) + 100 });
+        await element.type(char, { delay: Math.floor(Math.random() * 200) + 100 });
       }
     }
 
     console.log('Preenchendo CPF...');
-    await typeSlowly('input#titulo-cpf-nome', cpf);
+    await typeSlowlyXPath(page, '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="titulo-cpf-nome"]', cpf);
 
     console.log('Preenchendo Nome da Mãe...');
-    await typeSlowly('input[formcontrolname="nomeMae"]', nome_mae);
+    await typeSlowlyXPath(page, '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@formcontrolname="nomeMae"]', nome_mae);
 
     console.log('Preenchendo Data de Nascimento...');
-    await typeSlowly('input#dataNascimento', data_nascimento);
+    await typeSlowlyXPath(page, '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="dataNascimento"]', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    await page.click('button.btn-tse');
+    const [button] = await page.$x('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//button[@class="btn-tse"]');
+    if (!button) throw new Error('Botão Entrar não encontrado');
+    await button.click();
 
     console.log('Esperando o redirecionamento para a página de resultados...');
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
