@@ -36,7 +36,7 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 120000 }); // 2 minutos, direto do HTML
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 120000 });
 
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
@@ -86,24 +86,24 @@ app.post('/verificar', async (req, res) => {
         const labelElement = Array.from(document.querySelectorAll('span.label')).find(
           el => el.textContent.trim() === label
         );
-        if (labelElement) {
-          const valueElement = labelElement.nextElementSibling;
-          data[label] = valueElement ? valueElement.textContent.trim() : 'Não encontrado';
-        } else {
-          data[label] = 'Não encontrado';
-        }
+        data[label] = labelElement && labelElement.nextElementSibling ? 
+          labelElement.nextElementSibling.textContent.trim() : 'Não encontrado';
       });
 
       return data;
     });
 
-    console.log('Resultados extraídos com sucesso!');
+    console.log('Resultados extraídos:', JSON.stringify(resultados));
     await browser.close();
-    res.json({ status: 'success', data: resultados });
+
+    // Garante que a resposta seja um JSON válido
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({ status: 'success', data: resultados });
   } catch (error) {
     console.log('Erro detectado:', error.message);
     if (browser) await browser.close();
-    res.json({ status: 'error', message: error.message });
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ status: 'error', message: error.message });
   }
 });
 
