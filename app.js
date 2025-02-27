@@ -21,7 +21,7 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-      headless: 'new',
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       executablePath: '/usr/bin/microsoft-edge'
     });
@@ -36,11 +36,17 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 });
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 120000 }); // 2 minutos, direto do HTML
 
     async function typeSlowly(selector, text) {
+      const element = await page.$(selector);
+      if (!element) {
+        const html = await page.content();
+        console.log('HTML quando falhou (primeiros 1000 caracteres):', html.substring(0, 1000));
+        throw new Error(`Elemento ${selector} não encontrado`);
+      }
       for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 200) + 100 });
+        await element.type(char, { delay: Math.floor(Math.random() * 200) + 100 });
       }
     }
 
