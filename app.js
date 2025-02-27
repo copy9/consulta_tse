@@ -32,10 +32,17 @@ app.post('/verificar', async (req, res) => {
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2', timeout: 120000 });
 
-    console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 120000 });
+    // Delay pra garantir que o modal carregue
+    console.log('Aguardando o modal carregar...');
+    await page.waitForTimeout(10000); // 10 segundos extras pra renderização
 
-    // Função para digitar lentamente
+    console.log('Esperando o formulário de login...');
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 180000 }); // 3 minutos pra garantir
+
+    // Debug pra ver o estado da página
+    const html = await page.content();
+    console.log('HTML da página (primeiros 500 caracteres):', html.substring(0, 500));
+
     async function typeSlowly(selector, text) {
       for (const char of text) {
         await page.type(selector, char, { delay: Math.floor(Math.random() * 200) + 100 });
@@ -43,7 +50,7 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Preenchendo CPF...');
-    await typeSlowly('input#titulo-cpf-nome', cpf);
+    await typeSurely('input#titulo-cpf-nome', cpf);
 
     console.log('Preenchendo Nome da Mãe...');
     await typeSlowly('input[formcontrolname="nomeMae"]', nome_mae);
@@ -78,7 +85,6 @@ app.post('/verificar', async (req, res) => {
         const labelElement = Array.from(document.querySelectorAll('span.label')).find(
           el => el.textContent.trim() === label
         );
-
         if (labelElement) {
           const valueElement = labelElement.nextElementSibling;
           data[label] = valueElement ? valueElement.textContent.trim() : 'Não encontrado';
