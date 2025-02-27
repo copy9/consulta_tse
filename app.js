@@ -21,10 +21,10 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      executablePath: '/usr/bin/chromium-browser' // Caminho para o Chrome/Chromium no sistema
-    });
+  headless: 'new',
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  executablePath: '/usr/bin/microsoft-edge' // Força o caminho do Edge direto no código
+});
     const page = await browser.newPage();
 
     // Restante do código...
