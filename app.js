@@ -36,15 +36,7 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    const cpfInput = await Promise.race([
-      page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 }),
-      page.waitForSelector('input[formcontrolname="tituloCpfNome"]', { timeout: 90000 }),
-      page.waitForSelector('input[type="text"]', { timeout: 90000 })
-    ]);
-    if (!cpfInput) {
-      await page.screenshot({ path: 'debug_form.png' });
-      throw new Error('Campo CPF não encontrado na página');
-    }
+    await page.waitForSelector('input[type="text"]', { timeout: 90000 }); // Pega o primeiro campo de texto
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -53,7 +45,12 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Preenchendo CPF...');
-    await typeSlowly('input#titulo-cpf-nome', cpf);
+    const cpfSelector = await page.$('input#titulo-cpf-nome') || await page.$('input[formcontrolname="tituloCpfNome"]') || await page.$('input[type="text"]');
+    if (!cpfSelector) {
+      await page.screenshot({ path: 'debug_cpf_error.png' });
+      throw new Error('Campo CPF não encontrado');
+    }
+    await typeSlowly('input[type="text"]', cpf);
 
     console.log('Preenchendo Nome da Mãe...');
     await typeSlowly('input[formcontrolname="nomeMae"]', nome_mae);
