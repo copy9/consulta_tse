@@ -35,8 +35,8 @@ app.post('/verificar', async (req, res) => {
       timeout: 60000 
     });
 
-    console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 120000 });
+    console.log('Esperando o conteúdo da página de resultados carregar...');
+await page.waitForSelector('span.label', { timeout: 180000 });
 
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
