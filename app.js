@@ -35,8 +35,8 @@ app.post('/verificar', async (req, res) => {
       timeout: 60000 
     });
 
-    console.log('Esperando o conteúdo da página de resultados carregar...');
-await page.waitForSelector('span.label', { timeout: 180000 });
+    console.log('Esperando o formulário de login...');
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 120000 });
 
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
@@ -66,7 +66,7 @@ await page.waitForSelector('span.label', { timeout: 180000 });
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
-    await page.waitForSelector('span.label', { timeout: 120000 });
+    await page.waitForSelector('span.label', { timeout: 180000 }); // Ajustado para 3 minutos
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
