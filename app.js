@@ -21,47 +21,37 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-      headless: 'new',
+      headless: false, // Roda com interface pra simular usuário real
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--user-data-dir=/tmp/puppeteer'
+        '--disable-infobars',
+        '--window-size=1280,720',
+        '--start-maximized'
       ],
-      executablePath: '/usr/bin/microsoft-edge'
+      executablePath: '/usr/bin/microsoft-edge',
+      defaultViewport: null
     });
     const page = await browser.newPage();
 
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/108.0.0.0 Safari/537.36');
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'pt-BR,pt;q=0.9',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
-    });
 
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
-      waitUntil: 'domcontentloaded', 
+      waitUntil: 'networkidle0', // Espera tudo carregar, incluindo scripts
       timeout: 60000 
     });
 
     console.log('Esperando o formulário de login...');
-    await page.evaluate(() => {
-      return new Promise((resolve) => {
-        const checkForm = () => {
-          if (document.querySelector('input#titulo-cpf-nome')) {
-            resolve(true);
-          } else {
-            setTimeout(checkForm, 1000); // Checa a cada 1 segundo
-          }
-        };
-        checkForm();
-      });
-    }, { timeout: 300000 }); // 5 minutos máximo
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 300000 }); // 5 minutos pra garantir
 
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
-      if (!element) throw new Error(`Elemento ${selector} não encontrado`);
+      if (!element) {
+        const html = await page.content();
+        console.log('HTML quando falhou (primeiros 1000 caracteres):', html.substring(0, 1000));
+        throw new Error(`Elemento ${selector} não encontrado`);
+      }
       for (const char of text) {
         await element.type(char, { delay: Math.floor(Math.random() * 200) + 100 });
       }
@@ -80,7 +70,7 @@ app.post('/verificar', async (req, res) => {
     await page.click('button.btn-tse');
 
     console.log('Esperando o redirecionamento para a página de resultados...');
-    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 180000 });
+    await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 180000 });
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
     await page.waitForSelector('div.data-box', { timeout: 180000 });
