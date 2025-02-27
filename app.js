@@ -32,34 +32,34 @@ app.post('/verificar', async (req, res) => {
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2', timeout: 120000 });
 
-    // Delay pra garantir que o modal carregue
-    console.log('Aguardando o modal carregar...');
-    await page.waitForTimeout(10000); // 10 segundos extras pra renderização
-
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 180000 }); // 3 minutos pra garantir
+    await page.waitForFunction(
+      () => document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="titulo-cpf-nome"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null,
+      { timeout: 180000 }
+    );
 
-    // Debug pra ver o estado da página
-    const html = await page.content();
-    console.log('HTML da página (primeiros 500 caracteres):', html.substring(0, 500));
-
-    async function typeSlowly(selector, text) {
+    // Função para digitar lentamente com XPath
+    async function typeSlowlyXPath(page, xpath, text) {
+      const [element] = await page.$x(xpath);
+      if (!element) throw new Error(`Elemento no XPath ${xpath} não encontrado`);
       for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 200) + 100 });
+        await element.type(char, { delay: Math.floor(Math.random() * 200) + 100 });
       }
     }
 
     console.log('Preenchendo CPF...');
-    await typeSurely('input#titulo-cpf-nome', cpf);
+    await typeSlowlyXPath(page, '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="titulo-cpf-nome"]', cpf);
 
     console.log('Preenchendo Nome da Mãe...');
-    await typeSlowly('input[formcontrolname="nomeMae"]', nome_mae);
+    await typeSlowlyXPath(page, '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@formcontrolname="nomeMae"]', nome_mae);
 
     console.log('Preenchendo Data de Nascimento...');
-    await typeSlowly('input#dataNascimento', data_nascimento);
+    await typeSlowlyXPath(page, '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="dataNascimento"]', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    await page.click('button.btn-tse');
+    const [button] = await page.$x('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//button[@class="btn-tse"]');
+    if (!button) throw new Error('Botão Entrar não encontrado');
+    await button.click();
 
     console.log('Esperando o redirecionamento para a página de resultados...');
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 180000 });
