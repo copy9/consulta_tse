@@ -35,13 +35,28 @@ app.post('/verificar', async (req, res) => {
       timeout: 60000 
     });
 
-    console.log('Esperando o formulário de login...');
-    await page.waitForFunction(
-      () => document.querySelector('input#titulo-cpf-nome') !== null,
-      { timeout: 180000 }
-    );
+    // Confere se tá na URL correta
+    const currentUrl = await page.url();
+    console.log('URL atual:', currentUrl);
+    if (!currentUrl.includes('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar')) {
+      throw new Error('Redirecionou pra outra página: ' + currentUrl);
+    }
 
-    // Função para digitar lentamente
+    console.log('Esperando o formulário de login...');
+    let formFound = false;
+    for (let i = 0; i < 6; i++) { // 6 tentativas de 30s = 3 minutos
+      try {
+        await page.waitForSelector('input#titulo-cpf-nome', { timeout: 30000 });
+        formFound = true;
+        break;
+      } catch (e) {
+        console.log(`Tentativa ${i + 1}/6 falhou, esperando mais 30s...`);
+        const html = await page.content();
+        console.log('HTML atual (primeiros 1000 caracteres):', html.substring(0, 1000));
+      }
+    }
+    if (!formFound) throw new Error('Formulário não encontrado após 3 minutos');
+
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
       if (!element) throw new Error(`Elemento ${selector} não encontrado`);
