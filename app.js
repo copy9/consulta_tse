@@ -23,7 +23,7 @@ app.post('/verificar', async (req, res) => {
     browser = await puppeteer.launch({ 
       headless: 'new',
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      executablePath: '/usr/bin/microsoft-edge' // Força o caminho do Edge direto no código
+      executablePath: '/usr/bin/microsoft-edge'
     });
     const page = await browser.newPage();
 
@@ -33,7 +33,9 @@ app.post('/verificar', async (req, res) => {
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { waitUntil: 'networkidle2', timeout: 60000 });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForXPath('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="titulo-cpf-nome"]', { timeout: 90000 });
+    await page.waitForFunction(() => {
+      return document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div//input[@id="titulo-cpf-nome"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null;
+    }, { timeout: 90000 });
 
     // Função para digitar lentamente com XPath
     async function typeSlowlyXPath(page, xpath, text) {
