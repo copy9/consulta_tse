@@ -22,12 +22,22 @@ app.post('/verificar', async (req, res) => {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--user-data-dir=/tmp/puppeteer'
+      ],
       executablePath: '/usr/bin/microsoft-edge'
     });
     const page = await browser.newPage();
 
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/108.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+    });
 
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
@@ -35,27 +45,19 @@ app.post('/verificar', async (req, res) => {
       timeout: 60000 
     });
 
-    // Confere se tá na URL correta
-    const currentUrl = await page.url();
-    console.log('URL atual:', currentUrl);
-    if (!currentUrl.includes('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar')) {
-      throw new Error('Redirecionou pra outra página: ' + currentUrl);
-    }
-
     console.log('Esperando o formulário de login...');
-    let formFound = false;
-    for (let i = 0; i < 6; i++) { // 6 tentativas de 30s = 3 minutos
-      try {
-        await page.waitForSelector('input#titulo-cpf-nome', { timeout: 30000 });
-        formFound = true;
-        break;
-      } catch (e) {
-        console.log(`Tentativa ${i + 1}/6 falhou, esperando mais 30s...`);
-        const html = await page.content();
-        console.log('HTML atual (primeiros 1000 caracteres):', html.substring(0, 1000));
-      }
-    }
-    if (!formFound) throw new Error('Formulário não encontrado após 3 minutos');
+    await page.evaluate(() => {
+      return new Promise((resolve) => {
+        const checkForm = () => {
+          if (document.querySelector('input#titulo-cpf-nome')) {
+            resolve(true);
+          } else {
+            setTimeout(checkForm, 1000); // Checa a cada 1 segundo
+          }
+        };
+        checkForm();
+      });
+    }, { timeout: 300000 }); // 5 minutos máximo
 
     async function typeSlowly(selector, text) {
       const element = await page.$(selector);
