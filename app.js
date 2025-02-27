@@ -21,7 +21,7 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-      headless: true,
+      headless: 'new',
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       executablePath: '/usr/bin/microsoft-edge'
     });
@@ -36,17 +36,11 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 120000 });
+    await page.waitForSelector('input#titulo-cpf-nome', { timeout: 90000 });
 
     async function typeSlowly(selector, text) {
-      const element = await page.$(selector);
-      if (!element) {
-        const html = await page.content();
-        console.log('HTML quando falhou (primeiros 1000 caracteres):', html.substring(0, 1000));
-        throw new Error(`Elemento ${selector} não encontrado`);
-      }
       for (const char of text) {
-        await element.type(char, { delay: Math.floor(Math.random() * 200) + 100 });
+        await page.type(selector, char, { delay: Math.floor(Math.random() * 200) + 100 });
       }
     }
 
@@ -63,10 +57,10 @@ app.post('/verificar', async (req, res) => {
     await page.click('button.btn-tse');
 
     console.log('Esperando o redirecionamento para a página de resultados...');
-await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
 
-console.log('Esperando o conteúdo da página de resultados carregar...');
-await page.waitForSelector('span.label', { timeout: 180000 }); // Ajustado para 3 minutos
+    console.log('Esperando o conteúdo da página de resultados carregar...');
+    await page.waitForSelector('span.label', { timeout: 120000 });
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
@@ -95,14 +89,11 @@ await page.waitForSelector('span.label', { timeout: 180000 }); // Ajustado para 
 
     console.log('Resultados extraídos:', JSON.stringify(resultados));
     await browser.close();
-
-    res.setHeader('Content-Type', 'application/json');
-    res.status(200).json({ status: 'success', data: resultados });
+    res.json({ status: 'success', data: resultados });
   } catch (error) {
     console.log('Erro detectado:', error.message);
     if (browser) await browser.close();
-    res.setHeader('Content-Type', 'application/json');
-    res.status(500).json({ status: 'error', message: error.message });
+    res.json({ status: 'error', message: error.message });
   }
 });
 
