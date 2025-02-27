@@ -63,10 +63,10 @@ app.post('/verificar', async (req, res) => {
     await page.click('button.btn-tse');
 
     console.log('Esperando o redirecionamento para a página de resultados...');
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }); // 1 minuto, já que carrega rápido
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
-    await page.waitForSelector('span.label', { timeout: 60000 }); // Usa span.label que tá no teu evaluate
+    await page.waitForSelector('div.data-box', { timeout: 120000 });
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
@@ -96,6 +96,7 @@ app.post('/verificar', async (req, res) => {
     console.log('Resultados extraídos:', JSON.stringify(resultados));
     await browser.close();
 
+    // Garante que a resposta seja um JSON válido
     res.setHeader('Content-Type', 'application/json');
     res.status(200).json({ status: 'success', data: resultados });
   } catch (error) {
