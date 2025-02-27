@@ -63,10 +63,10 @@ app.post('/verificar', async (req, res) => {
     await page.click('button.btn-tse');
 
     console.log('Esperando o redirecionamento para a página de resultados...');
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
-    await page.waitForSelector('span.label', { timeout: 60000 }); // Usa span.label do teu HTML
+    await page.waitForSelector('span.label', { timeout: 120000 });
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
