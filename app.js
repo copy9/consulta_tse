@@ -77,7 +77,10 @@ app.post('/verificar', async (req, res) => {
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await page.waitForXPath('//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div', { timeout: 120000 });
+await page.waitForFunction(
+  'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
+  { timeout: 120000 }
+);
 
     console.log('Esperando 1 segundo...');
     await new Promise(resolve => setTimeout(resolve, 1000));
