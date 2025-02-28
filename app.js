@@ -28,7 +28,7 @@ app.post('/verificar', async (req, res) => {
 
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
 
-    console.log('Carregando a página do TSE...');
+    console.log('Abrindo o site...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
       waitUntil: 'networkidle2',
       timeout: 60000 
@@ -43,10 +43,10 @@ app.post('/verificar', async (req, res) => {
       }
     }
 
-    console.log('Preenchendo CPF...');
+    console.log('Colocando o CPF...');
     await typeSlowly('input', cpf);
 
-    console.log('Preenchendo Nome da Mãe...');
+    console.log('Colocando o nome da mãe...');
     const inputs = await page.$$('input');
     if (inputs.length < 2) {
       await page.screenshot({ path: 'debug_mae_error.png' });
@@ -54,14 +54,14 @@ app.post('/verificar', async (req, res) => {
     }
     await typeSlowly('input:nth-child(2)', nome_mae);
 
-    console.log('Preenchendo Data de Nascimento...');
+    console.log('Colocando a data de nascimento...');
     if (inputs.length < 3) {
       await page.screenshot({ path: 'debug_data_error.png' });
       throw new Error('Campo Data de Nascimento não encontrado');
     }
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
-    console.log('Clicando no botão "Entrar"...');
+    console.log('Clicando em Entrar...');
     await page.evaluate(() => {
       let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse');
       if (!button) button = document.querySelector('button.btn-tse');
@@ -76,13 +76,10 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 120000));
-
-    console.log('Esperando 1 segundo após clicar no botão "Entrar"...');
+    console.log('Esperando 1 segundo...');
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    console.log('Capturando print do container de resultados...');
+    console.log('Tirando o print...');
     const containerSelector = 'div.container-detalhes-ov';
     const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
     let container = await page.$(containerSelector);
@@ -115,7 +112,7 @@ app.post('/verificar', async (req, res) => {
       await page.screenshot({ path: 'resultados_full.png' });
     }
 
-    console.log('Print capturado com sucesso');
+    console.log('Exibindo o print nos resultados...');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
     if (base64Image) {
       res.setHeader('Content-Type', 'application/json');
