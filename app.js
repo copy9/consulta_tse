@@ -108,7 +108,7 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Print capturado com sucesso');
-    const base64Image = await page.screenshot({ encoding: 'base64' });
+    const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
     await browser.close();
     res.json({ status: 'success', image: base64Image });
   } catch (error) {
