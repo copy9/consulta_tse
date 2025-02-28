@@ -44,6 +44,11 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Colocando o CPF...');
+    const cpfInput = await page.$('input[placeholder="Número do título eleitoral ou CPF nº"]');
+    if (!cpfInput) {
+      await page.screenshot({ path: 'debug_cpf_error.png' });
+      throw new Error('Campo CPF não encontrado');
+    }
     await typeSlowly('input[placeholder="Número do título eleitoral ou CPF nº"]', cpf);
 
     console.log('Colocando o nome da mãe...');
