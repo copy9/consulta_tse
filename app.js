@@ -63,15 +63,21 @@ app.post('/verificar', async (req, res) => {
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    const button = await page.$('button[type="submit"]') || await page.$('button'); // Tenta o botão de submit ou qualquer botão
+    const button = await page.$('button[type="submit"]') || await page.$('button');
     if (!button) {
       await page.screenshot({ path: 'debug_button_error.png' });
       throw new Error('Botão Entrar não encontrado');
     }
-    await page.click('button'); // Clica no primeiro botão disponível
+    await page.click('button');
+    await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando o redirecionamento para a página de resultados...');
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
+    try {
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
+    } catch (e) {
+      console.log('Navegação demorou demais, continuando mesmo assim...');
+      await page.waitForTimeout(5000); // Espera 5 segundos pra página carregar
+    }
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
     await page.waitForSelector('span.label', { timeout: 120000 });
