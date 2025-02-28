@@ -68,7 +68,7 @@ app.post('/verificar', async (req, res) => {
       await page.screenshot({ path: 'debug_button_error.png' });
       throw new Error('Botão Entrar não encontrado');
     }
-    await page.evaluate(btn => btn.click(), button); // Força o clique via JS
+    await page.evaluate(btn => btn.click(), button);
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando o redirecionamento para a página de resultados...');
@@ -76,34 +76,24 @@ app.post('/verificar', async (req, res) => {
       await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
     } catch (e) {
       console.log('Navegação demorou demais, continuando mesmo assim...');
-      await new Promise(resolve => setTimeout(resolve, 15000)); // Espera 15 segundos pro resultado aparecer
+      await new Promise(resolve => setTimeout(resolve, 15000)); // 15 segundos pra carregar
     }
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
-    await page.waitForSelector('.container-detalhes-ov .data-box', { timeout: 120000 }); // Usa o container específico dos resultados
+    await page.waitForXPath('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div', { timeout: 120000 });
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
-      const data = {};
-      const labels = [
-        'Local de votação',
-        'Endereço',
-        'Município/UF',
-        'Bairro',
-        'Seção',
-        'País',
-        'Zona',
-        'Localização',
-      ];
-
-      labels.forEach(label => {
-        const labelElement = Array.from(document.querySelectorAll('.data-box span.label')).find(
-          el => el.textContent.trim() === label
-        );
-        const descElement = labelElement ? labelElement.nextElementSibling : null;
-        data[label] = descElement ? descElement.textContent.trim() : 'Não encontrado';
-      });
-
+      const data = {
+        'Local de votação': document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado',
+        'Endereço': document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado',
+        'Município/UF': document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado',
+        'Bairro': document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[4]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado',
+        'Seção': document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado',
+        'País': document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado',
+        'Zona': document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado'
+        // 'Localização' não tem valor direto no span[2], é um link, então deixei fora por enquanto
+      };
       return data;
     });
 
