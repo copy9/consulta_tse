@@ -63,16 +63,18 @@ app.post('/verificar', async (req, res) => {
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    const buttonXPath = '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div/div/div[2]/div[2]/form/div[2]/button[2]';
-    await page.evaluate((xpath) => {
-      const button = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    const formXPath = '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div/div/div[2]/div[2]/form';
+    await page.waitForFunction((xpath) => !!document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue, {}, formXPath, { timeout: 60000 });
+    await page.evaluate(() => {
+      const form = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div/div/div[2]/div[2]/form', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      const button = form.querySelector('button.btn-tse[type="submit"]');
       if (button) {
         button.click();
-        console.log('Botão Entrar clicado com sucesso'); // Log interno pra debug
+        console.log('Botão Entrar clicado com sucesso');
       } else {
-        throw new Error('Botão Entrar não encontrado na popup');
+        throw new Error('Botão Entrar não encontrado dentro do form');
       }
-    }, buttonXPath);
+    });
     await page.screenshot({ path: 'debug_before_navigation.png' });
     console.log('Clique no botão concluído'); // Linha extra
 
