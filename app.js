@@ -81,15 +81,15 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Capturando dados da página...');
     const dados = await page.evaluate(() => {
-      const container = document.querySelector('app-box-local-votacao');
+      const container = document.querySelector('app-box-local-votacao .container-detalhes-ov');
       if (!container) return null;
 
-      const localVotacao = container.querySelector('.data-box .desc').innerText;
-      const endereco = container.querySelectorAll('.data-box .desc')[1].innerText;
-      const municipioUF = container.querySelectorAll('.data-box .desc')[2].innerText;
-      const bairro = container.querySelectorAll('.data-box .desc')[3].innerText;
-      const secao = container.querySelectorAll('.data-box .desc')[4].innerText;
-      const zona = container.querySelectorAll('.data-box .desc')[5].innerText;
+      const localVotacao = container.querySelector('.lado-ov .data-box:nth-child(1) .desc').innerText;
+      const endereco = container.querySelector('.lado-ov .data-box:nth-child(2) .desc').innerText;
+      const municipioUF = container.querySelector('.lado-ov .data-box:nth-child(3) .desc').innerText;
+      const bairro = container.querySelector('.lado-ov .data-box:nth-child(4) .desc').innerText;
+      const secao = container.querySelector('.lado-ov:nth-child(2) .data-box:nth-child(1) .desc').innerText;
+      const zona = container.querySelector('.lado-ov:nth-child(2) .data-box:nth-child(3) .desc').innerText;
 
       return {
         localVotacao,
