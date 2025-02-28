@@ -22,7 +22,8 @@ app.post('/verificar', async (req, res) => {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      protocolTimeout: 1200000 // Aumenta o timeout global para 20 minutos
     });
     const page = await browser.newPage();
 
@@ -35,7 +36,7 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 90000 });
+    await page.waitForSelector('input', { timeout: 120000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -44,22 +45,28 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Colocando o CPF...');
-    await typeSlowly('input', cpf);
+    const cpfInput = await page.$('input[placeholder="Número do título eleitoral ou CPF nº"]');
+    if (!cpfInput) {
+      await page.screenshot({ path: 'debug_cpf_error.png' });
+      throw new Error('Campo CPF não encontrado');
+    }
+    await typeSlowly('input[placeholder="Número do título eleitoral ou CPF nº"]', cpf);
 
     console.log('Colocando o nome da mãe...');
-    const inputs = await page.$$('input');
-    if (inputs.length < 2) {
+    const nomeMaeInput = await page.$('input[placeholder="Nome da mãe"]');
+    if (!nomeMaeInput) {
       await page.screenshot({ path: 'debug_mae_error.png' });
       throw new Error('Campo Nome da Mãe não encontrado');
     }
-    await typeSlowly('input:nth-child(2)', nome_mae);
+    await typeSlowly('input[placeholder="Nome da mãe"]', nome_mae);
 
     console.log('Colocando a data de nascimento...');
-    if (inputs.length < 3) {
+    const dataNascimentoInput = await page.$('input[placeholder="Data de nascimento (dia/mês)"]');
+    if (!dataNascimentoInput) {
       await page.screenshot({ path: 'debug_data_error.png' });
       throw new Error('Campo Data de Nascimento não encontrado');
     }
-    await typeSlowly('input:nth-child(3)', data_nascimento);
+    await typeSlowly('input[placeholder="Data de nascimento (dia/mês)"]', data_nascimento);
 
     console.log('Clicando em Entrar...');
     await page.evaluate(() => {
@@ -76,43 +83,43 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-   console.log('Esperando os resultados carregarem na tela...');
-await page.waitForFunction(
-  'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
-  { timeout: 300000 }
-);
+    console.log('Esperando os resultados carregarem na tela...');
+    await page.waitForFunction(
+      'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
+      { timeout: 600000 }
+    );
 
-console.log('Esperando 1 segundo...');
-await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Esperando 1 segundo...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-console.log('Tirando o print...');
-const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
-let container = await page.evaluateHandle((xpath) => {
-  return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-}, containerXPath);
-if (!container) {
-  await page.screenshot({ path: 'debug_no_results.png' });
-  throw new Error('Container dos resultados não encontrado');
-}
-let boundingBox;
-try {
-  boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
-} catch (e) {
-  boundingBox = null;
-}
-if (boundingBox) {
-  await page.screenshot({
-    path: 'resultados.png',
-    clip: {
-      x: Math.max(0, boundingBox.x),
-      y: Math.max(0, boundingBox.y),
-      width: Math.min(boundingBox.width, 1920 - boundingBox.x),
-      height: Math.min(boundingBox.height, 1080 - boundingBox.y)
+    console.log('Tirando o print...');
+    const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
+    let container = await page.evaluateHandle((xpath) => {
+      return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    }, containerXPath);
+    if (!container) {
+      await page.screenshot({ path: 'debug_no_results.png' });
+      throw new Error('Container dos resultados não encontrado');
     }
-  });
-} else {
-  await page.screenshot({ path: 'resultados_full.png' });
-}
+    let boundingBox;
+    try {
+      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
+    } catch (e) {
+      boundingBox = null;
+    }
+    if (boundingBox) {
+      await page.screenshot({
+        path: 'resultados.png',
+        clip: {
+          x: Math.max(0, boundingBox.x),
+          y: Math.max(0, boundingBox.y),
+          width: Math.min(boundingBox.width, 1920 - boundingBox.x),
+          height: Math.min(boundingBox.height, 1080 - boundingBox.y)
+        }
+      });
+    } else {
+      await page.screenshot({ path: 'resultados_full.png' });
+    }
 
     console.log('Exibindo o print nos resultados...');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
