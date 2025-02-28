@@ -35,7 +35,7 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('#modal > div > div > div.modal-corpo > div.login-form-row > form input', { timeout: 120000 });
+    await page.waitForSelector('input', { timeout: 90000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -44,22 +44,22 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Colocando o CPF...');
-    await typeSlowly('#modal > div > div > div.modal-corpo > div.login-form-row > form input', cpf);
+    await typeSlowly('input', cpf);
 
     console.log('Colocando o nome da mãe...');
-    const inputs = await page.$$('#modal > div > div > div.modal-corpo > div.login-form-row > form input');
+    const inputs = await page.$$('input');
     if (inputs.length < 2) {
       await page.screenshot({ path: 'debug_mae_error.png' });
       throw new Error('Campo Nome da Mãe não encontrado');
     }
-    await typeSlowly('#modal > div > div > div.modal-corpo > div.login-form-row > form input:nth-child(2)', nome_mae);
+    await typeSlowly('input:nth-child(2)', nome_mae);
 
     console.log('Colocando a data de nascimento...');
     if (inputs.length < 3) {
       await page.screenshot({ path: 'debug_data_error.png' });
       throw new Error('Campo Data de Nascimento não encontrado');
     }
-    await typeSlowly('#modal > div > div > div.modal-corpo > div.login-form-row > form input:nth-child(3)', data_nascimento);
+    await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando em Entrar...');
     await page.evaluate(() => {
@@ -76,15 +76,12 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 120000));
-
     console.log('Esperando 1 segundo...');
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     console.log('Tirando o print...');
     const containerXPath = '/html/body/div[4]/div/div/div/div/app-root/div';
-    const container = await page.evaluateHandle((xpath) => {
+    let container = await page.evaluateHandle((xpath) => {
       return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     }, containerXPath);
     if (!container) {
