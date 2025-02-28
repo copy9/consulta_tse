@@ -34,6 +34,28 @@ app.post('/verificar', async (req, res) => {
       timeout: 60000 
     });
 
+    console.log('Capturando print inicial antes de preencher...');
+    const initialContainer = await page.$('div.login-form-row');
+    if (!initialContainer) {
+      await page.screenshot({ path: 'debug_no_initial.png' });
+      throw new Error('Container inicial não encontrado');
+    }
+    const initialBoundingBox = await initialContainer.boundingBox();
+    if (initialBoundingBox) {
+      await page.screenshot({
+        path: 'inicial.png',
+        clip: {
+          x: Math.max(0, initialBoundingBox.x),
+          y: Math.max(0, initialBoundingBox.y),
+          width: Math.min(initialBoundingBox.width, 1920 - initialBoundingBox.x),
+          height: Math.min(initialBoundingBox.height, 1080 - initialBoundingBox.y)
+        }
+      });
+    } else {
+      await page.screenshot({ path: 'inicial_full.png' });
+    }
+    const base64InitialImage = await page.screenshot({ encoding: 'base64', type: 'png' });
+
     console.log('Esperando o formulário de login...');
     await page.waitForSelector('input', { timeout: 90000 });
 
@@ -112,13 +134,13 @@ app.post('/verificar', async (req, res) => {
       await page.screenshot({ path: 'resultados_full.png' });
     }
 
-    console.log('Print capturado com sucesso');
-    const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
-    if (base64Image) {
+    console.log('Prints capturados com sucesso');
+    const base64ResultImage = await page.screenshot({ encoding: 'base64', type: 'png' });
+    if (base64ResultImage && base64InitialImage) {
       res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ status: 'success', image: base64Image }));
+      res.send(JSON.stringify({ status: 'success', initialImage: base64InitialImage, resultImage: base64ResultImage }));
     } else {
-      throw new Error('Falha ao gerar a imagem Base64');
+      throw new Error('Falha ao gerar as imagens Base64');
     }
     await browser.close();
   } catch (error) {
