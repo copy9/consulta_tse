@@ -115,7 +115,8 @@ app.post('/verificar', async (req, res) => {
     console.log('Print capturado com sucesso');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
     if (base64Image) {
-      res.json({ status: 'success', image: base64Image });
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ status: 'success', image: base64Image }));
     } else {
       throw new Error('Falha ao gerar a imagem Base64');
     }
@@ -123,7 +124,8 @@ app.post('/verificar', async (req, res) => {
   } catch (error) {
     console.log('Erro detectado:', error.message);
     if (browser) await browser.close();
-    res.json({ status: 'error', message: error.message });
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify({ status: 'error', message: error.message }));
   }
 });
 
