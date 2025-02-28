@@ -84,20 +84,19 @@ app.post('/verificar', async (req, res) => {
       const container = document.querySelector('app-box-local-votacao .container-detalhes-ov');
       if (!container) return null;
 
-      const localVotacao = container.querySelector('.lado-ov .data-box:nth-child(1) .desc').innerText;
-      const endereco = container.querySelector('.lado-ov .data-box:nth-child(2) .desc').innerText;
-      const municipioUF = container.querySelector('.lado-ov .data-box:nth-child(3) .desc').innerText;
-      const bairro = container.querySelector('.lado-ov .data-box:nth-child(4) .desc').innerText;
-      const secao = container.querySelector('.lado-ov:nth-child(2) .data-box:nth-child(1) .desc').innerText;
-      const zona = container.querySelector('.lado-ov:nth-child(2) .data-box:nth-child(3) .desc').innerText;
+      // Função para capturar dados de forma segura
+      const getSafeText = (selector) => {
+        const element = container.querySelector(selector);
+        return element ? element.innerText.trim() : 'Não encontrado';
+      };
 
       return {
-        localVotacao,
-        endereco,
-        municipioUF,
-        bairro,
-        secao,
-        zona
+        localVotacao: getSafeText('.lado-ov .data-box:nth-child(1) .desc'),
+        endereco: getSafeText('.lado-ov .data-box:nth-child(2) .desc'),
+        municipioUF: getSafeText('.lado-ov .data-box:nth-child(3) .desc'),
+        bairro: getSafeText('.lado-ov .data-box:nth-child(4) .desc'),
+        secao: getSafeText('.lado-ov:nth-child(2) .data-box:nth-child(1) .desc'),
+        zona: getSafeText('.lado-ov:nth-child(2) .data-box:nth-child(3) .desc')
       };
     });
 
