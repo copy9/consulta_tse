@@ -83,17 +83,13 @@ app.post('/verificar', async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     console.log('Tirando o print...');
-    const containerSelector = 'div.container-detalhes-ov';
-    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
-    let container = await page.$(containerSelector);
+    const containerXPath = '/html/body/div[4]/div/div/div/div/app-root/div';
+    const container = await page.evaluateHandle((xpath) => {
+      return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    }, containerXPath);
     if (!container) {
-      container = await page.evaluateHandle((xpath) => {
-        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      }, containerXPath);
-      if (!container) {
-        await page.screenshot({ path: 'debug_no_results.png' });
-        throw new Error('Container dos resultados não encontrado');
-      }
+      await page.screenshot({ path: 'debug_no_results.png' });
+      throw new Error('Container dos resultados não encontrado');
     }
     let boundingBox;
     try {
@@ -119,7 +115,7 @@ app.post('/verificar', async (req, res) => {
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
     if (base64Image) {
       res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ status: 'success', image: base64Image }));
+      res.status(200).send(JSON.stringify({ status: 'success', image: base64Image }));
     } else {
       throw new Error('Falha ao gerar a imagem Base64');
     }
@@ -128,7 +124,7 @@ app.post('/verificar', async (req, res) => {
     console.log('Erro detectado:', error.message);
     if (browser) await browser.close();
     res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({ status: 'error', message: error.message }));
+    res.status(500).send(JSON.stringify({ status: 'error', message: error.message }));
   }
 });
 
