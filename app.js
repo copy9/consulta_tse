@@ -76,39 +76,50 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-   console.log('Esperando os resultados carregarem na tela...');
-await page.waitForFunction(
-  'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
-  { timeout: 120000 }
-);
+    console.log('Esperando os resultados carregarem na tela...');
+    await new Promise(resolve => setTimeout(resolve, 120000));
 
-console.log('Esperando 1 segundo...');
-await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Capturando print do container de resultados...');
+    const containerSelector = 'div.container-detalhes-ov';
+    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
+    let container = await page.$(containerSelector);
+    if (!container) {
+      container = await page.evaluateHandle((xpath) => {
+        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      }, containerXPath);
+      if (!container) {
+        await page.screenshot({ path: 'debug_no_results.png' });
+        throw new Error('Container dos resultados não encontrado');
+      }
+    }
+    let boundingBox;
+    try {
+      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
+    } catch (e) {
+      boundingBox = null;
+    }
+    if (boundingBox) {
+      await page.screenshot({
+        path: 'resultados.png',
+        clip: {
+          x: Math.max(0, boundingBox.x),
+          y: Math.max(0, boundingBox.y),
+          width: Math.min(boundingBox.width, 1920 - boundingBox.x),
+          height: Math.min(boundingBox.height, 1080 - boundingBox.y)
+        }
+      });
+    } else {
+      await page.screenshot({ path: 'resultados_full.png' });
+    }
 
-console.log('Extraindo dados dos resultados...');
-const results = await page.evaluate(() => {
-  const container = document.evaluate('//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-  if (!container) return null;
-
-  const dataBoxes = container.querySelectorAll('.data-box');
-  const resultData = {};
-  dataBoxes.forEach(box => {
-    const label = box.querySelector('.label')?.textContent.trim() || '';
-    const desc = box.querySelector('.desc')?.textContent.trim() || '';
-    if (label) resultData[label] = desc;
-  });
-  return resultData;
-});
-
-if (!results) {
-  await page.screenshot({ path: 'debug_no_results.png' });
-  throw new Error('Dados dos resultados não encontrados');
-}
-
-console.log('Dados extraídos com sucesso:', results);
-res.setHeader('Content-Type', 'application/json');
-res.send(JSON.stringify({ status: 'success', data: results }));
-
+    console.log('Print capturado com sucesso');
+    const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
+    if (base64Image) {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ status: 'success', image: base64Image }));
+    } else {
+      throw new Error('Falha ao gerar a imagem Base64');
+    }
     await browser.close();
   } catch (error) {
     console.log('Erro detectado:', error.message);
