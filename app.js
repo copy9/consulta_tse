@@ -76,11 +76,11 @@ app.post('/verificar', async (req, res) => {
       await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
     } catch (e) {
       console.log('Navegação demorou demais, continuando mesmo assim...');
-      await page.waitForTimeout(5000); // Espera 5 segundos pra página carregar
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Espera 10 segundos pro reCAPTCHA ou página carregar
     }
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
-    await page.waitForSelector('span.label', { timeout: 120000 });
+    await page.waitForSelector('.data-box', { timeout: 120000 }); // Usa .data-box em vez de span.label
 
     console.log('Extraindo os resultados...');
     const resultados = await page.evaluate(() => {
@@ -100,8 +100,8 @@ app.post('/verificar', async (req, res) => {
         const labelElement = Array.from(document.querySelectorAll('span.label')).find(
           el => el.textContent.trim() === label
         );
-        data[label] = labelElement && labelElement.nextElementSibling ? 
-          labelElement.nextElementSibling.textContent.trim() : 'Não encontrado';
+        const descElement = labelElement ? labelElement.nextElementSibling : null;
+        data[label] = descElement ? descElement.textContent.trim() : 'Não encontrado';
       });
 
       return data;
