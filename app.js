@@ -22,9 +22,7 @@ app.post('/verificar', async (req, res) => {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      protocolTimeout: 1200000, // Aumenta o timeout global para 20 minutos
-      launchTimeout: 60000 // Aumenta o tempo de inicialização para 60 segundos
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
 
@@ -33,11 +31,11 @@ app.post('/verificar', async (req, res) => {
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
       waitUntil: 'networkidle2',
-      timeout: 120000 // Aumenta o timeout de navegação para 2 minutos
+      timeout: 60000 
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 120000 });
+    await page.waitForSelector('input', { timeout: 90000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -79,22 +77,20 @@ app.post('/verificar', async (req, res) => {
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await page.waitForFunction(
-      'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
-      { timeout: 600000 }
-    );
+    await new Promise(resolve => setTimeout(resolve, 120000));
 
-    console.log('Esperando 1 segundo...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    console.log('Tirando o print...');
-    const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
-    let container = await page.evaluateHandle((xpath) => {
-      return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    }, containerXPath);
+    console.log('Capturando print do container de resultados...');
+    const containerSelector = 'div.container-detalhes-ov';
+    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
+    let container = await page.$(containerSelector);
     if (!container) {
-      await page.screenshot({ path: 'debug_no_results.png' });
-      throw new Error('Container dos resultados não encontrado');
+      container = await page.evaluateHandle((xpath) => {
+        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      }, containerXPath);
+      if (!container) {
+        await page.screenshot({ path: 'debug_no_results.png' });
+        throw new Error('Container dos resultados não encontrado');
+      }
     }
     let boundingBox;
     try {
