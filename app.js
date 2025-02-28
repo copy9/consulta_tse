@@ -35,7 +35,7 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 120000 });
+    await page.waitForSelector('input', { timeout: 90000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -44,28 +44,22 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Colocando o CPF...');
-    const cpfInput = await page.$('input[placeholder="Número do título eleitoral ou CPF nº"]');
-    if (!cpfInput) {
-      await page.screenshot({ path: 'debug_cpf_error.png' });
-      throw new Error('Campo CPF não encontrado');
-    }
-    await typeSlowly('input[placeholder="Número do título eleitoral ou CPF nº"]', cpf);
+    await typeSlowly('input', cpf);
 
     console.log('Colocando o nome da mãe...');
-    const nomeMaeInput = await page.$('input[placeholder="Nome da mãe"]');
-    if (!nomeMaeInput) {
+    const inputs = await page.$$('input');
+    if (inputs.length < 2) {
       await page.screenshot({ path: 'debug_mae_error.png' });
       throw new Error('Campo Nome da Mãe não encontrado');
     }
-    await typeSlowly('input[placeholder="Nome da mãe"]', nome_mae);
+    await typeSlowly('input:nth-child(2)', nome_mae);
 
     console.log('Colocando a data de nascimento...');
-    const dataNascimentoInput = await page.$('input[placeholder="Data de nascimento (dia/mês)"]');
-    if (!dataNascimentoInput) {
+    if (inputs.length < 3) {
       await page.screenshot({ path: 'debug_data_error.png' });
       throw new Error('Campo Data de Nascimento não encontrado');
     }
-    await typeSlowly('input[placeholder="Data de nascimento (dia/mês)"]', data_nascimento);
+    await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando em Entrar...');
     await page.evaluate(() => {
@@ -81,12 +75,6 @@ app.post('/verificar', async (req, res) => {
       }
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
-
-    console.log('Esperando os resultados carregarem na tela...');
-    await page.waitForFunction(
-      'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
-      { timeout: 180000 }
-    );
 
     console.log('Esperando 1 segundo...');
     await new Promise(resolve => setTimeout(resolve, 1000));
