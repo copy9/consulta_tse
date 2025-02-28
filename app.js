@@ -64,21 +64,23 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Clicando no botão "Entrar"...');
     const buttonSelector = '#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse';
-    await page.waitForSelector(buttonSelector, { timeout: 60000 }); // Espera o botão aparecer
     await page.evaluate((selector) => {
       const button = document.querySelector(selector);
       if (button) {
         button.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        button.click(); // Clique normal
-        document.querySelector(selector).dispatchEvent(new Event('click', { bubbles: true })); // Força evento
+        button.click();
+        document.querySelector(selector).dispatchEvent(new Event('click', { bubbles: true }));
+        console.log('Botão Entrar clicado com sucesso');
       } else {
-        throw new Error('Botão Entrar não encontrado');
+        console.log('Botão Entrar não encontrado, forçando clique genérico');
+        const fallbackButton = document.querySelector('button.btn-tse');
+        if (fallbackButton) fallbackButton.click();
       }
     }, buttonSelector);
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await page.waitForTimeout(20000); // Espera 20 segundos pros resultados
+    await page.waitForTimeout(20000);
 
     console.log('Sniffando os dados da tela...');
     const resultados = await page.evaluate(() => {
