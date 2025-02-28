@@ -21,9 +21,8 @@ app.post('/verificar', async (req, res) => {
   try {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      executablePath: '/usr/bin/microsoft-edge'
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();
 
@@ -70,12 +69,9 @@ app.post('/verificar', async (req, res) => {
       if (!button) button = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar');
       if (!button) button = document.querySelector('button');
       if (button) {
-        button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        button.scrollIntoView({ behavior: 'auto', block: 'center' });
         button.click();
         button.dispatchEvent(new Event('click', { bubbles: true }));
-        console.log('Botão Entrar clicado com sucesso');
-      } else {
-        console.log('Nenhum botão encontrado, mas continuando...');
       }
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
@@ -84,23 +80,21 @@ app.post('/verificar', async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 90000));
 
     console.log('Capturando print do container de resultados...');
-    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
-    const container = await page.evaluate((xpath) => {
-      const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      return result ? { x: result.getBoundingClientRect().x, y: result.getBoundingClientRect().y, width: result.getBoundingClientRect().width, height: result.getBoundingClientRect().height } : null;
-    }, containerXPath);
+    const containerSelector = 'div.container-detalhes-ov';
+    const container = await page.$(containerSelector);
     if (!container) {
       await page.screenshot({ path: 'debug_no_results.png' });
       throw new Error('Container dos resultados não encontrado');
     }
-    if (container) {
+    const boundingBox = await container.boundingBox();
+    if (boundingBox) {
       await page.screenshot({
         path: 'resultados.png',
         clip: {
-          x: container.x,
-          y: container.y,
-          width: container.width,
-          height: container.height
+          x: Math.max(0, boundingBox.x),
+          y: Math.max(0, boundingBox.y),
+          width: Math.min(boundingBox.width, 1920 - boundingBox.x),
+          height: Math.min(boundingBox.height, 1080 - boundingBox.y)
         }
       });
     } else {
