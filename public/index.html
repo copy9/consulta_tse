@@ -24,7 +24,7 @@
 </head>
 <body>
     <h2>Pesquisa de Local de Votação - TSE</h2>
-    <form id="formPesquisa" action="/verificar" method="POST">
+    <form id="formPesquisa">
         <div class="input-group">
             <label for="cpf">CPF:</label>
             <input type="text" id="cpf" name="cpf" required>
@@ -94,7 +94,14 @@
 
             if (resultados.status === 'success' && resultados.image) {
                 divResultados.classList.remove('error');
-                conteudo.innerHTML = '';
+                conteudo.innerHTML = `
+                    <p><strong>Local de Votação:</strong> ${resultados.dados.localVotacao}</p>
+                    <p><strong>Endereço:</strong> ${resultados.dados.endereco}</p>
+                    <p><strong>Município/UF:</strong> ${resultados.dados.municipioUF}</p>
+                    <p><strong>Bairro:</strong> ${resultados.dados.bairro}</p>
+                    <p><strong>Seção:</strong> ${resultados.dados.secao}</p>
+                    <p><strong>Zona:</strong> ${resultados.dados.zona}</p>
+                `;
                 resultImage.src = 'data:image/png;base64,' + resultados.image;
                 resultImage.style.display = 'block';
             } else {
