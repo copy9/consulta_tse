@@ -139,42 +139,37 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 120000));
+   console.log('Esperando os resultados carregarem na tela...');
+await page.waitForSelector('.container-detalhes-ov', { timeout: 120000 });
 
-    console.log('Capturando print do container de resultados...');
-    const containerSelector = 'div.container-detalhes-ov';
-    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
-    let container = await page.$(containerSelector);
-    if (!container) {
-      container = await page.evaluateHandle((xpath) => {
-        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      }, containerXPath);
-      if (!container) {
-        await page.screenshot({ path: 'debug_no_results.png' });
-        throw new Error('Container dos resultados não encontrado');
-      }
-    }
-    let boundingBox;
-    try {
-      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
-    } catch (e) {
-      boundingBox = null;
-    }
-    if (boundingBox) {
-      await page.screenshot({
-        path: 'resultados.png',
-        clip: {
-          x: Math.max(0, boundingBox.x),
-          y: Math.max(0, boundingBox.y),
-          width: Math.min(boundingBox.width, 1920 - boundingBox.x),
-          height: Math.min(boundingBox.height, 1080 - boundingBox.y)
-        }
-      });
-    } else {
-      await page.screenshot({ path: 'resultados_full.png' });
-    }
+console.log('Esperando 1 segundo...');
+await new Promise(resolve => setTimeout(resolve, 1000));
 
+console.log('Tirando o print...');
+const container = await page.$('.container-detalhes-ov');
+if (!container) {
+  await page.screenshot({ path: 'debug_no_results.png' });
+  throw new Error('Container dos resultados não encontrado');
+}
+let boundingBox;
+try {
+  boundingBox = await container.boundingBox();
+} catch (e) {
+  boundingBox = null;
+}
+if (boundingBox) {
+  await page.screenshot({
+    path: 'resultados.png',
+    clip: {
+      x: Math.max(0, boundingBox.x),
+      y: Math.max(0, boundingBox.y),
+      width: Math.min(boundingBox.width, 1920 - boundingBox.x),
+      height: Math.min(boundingBox.height, 1080 - boundingBox.y)
+    }
+  });
+} else {
+  await page.screenshot({ path: 'resultados_full.png' });
+}
     console.log('Print capturado com sucesso');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
     if (base64Image) {
