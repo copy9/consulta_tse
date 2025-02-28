@@ -77,7 +77,7 @@ app.post('/verificar', async (req, res) => {
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 80000));
+    await new Promise(resolve => setTimeout(resolve, 20000));
 
     console.log('Capturando print do container de resultados...');
     const containerSelector = 'div.container-detalhes-ov';
