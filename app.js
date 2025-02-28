@@ -81,19 +81,27 @@ app.post('/verificar', async (req, res) => {
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    await new Promise(resolve => setTimeout(resolve, 90000)); // Aumentei pra 90 segundos
 
     console.log('Sniffando os dados da tela...');
     const resultados = await page.evaluate(() => {
       const data = {};
-      data['Local de votação'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      data['Endereço'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      data['Município/UF'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      data['Bairro'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[4]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      data['Seção'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      data['País'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      data['Zona'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      data['Localização'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[4]/span[2]/a', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.getAttribute('href') || 'Não encontrado';
+      data['Local de votação'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(1) span.desc')?.textContent.trim() || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Endereço'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(2) span.desc')?.textContent.trim() || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Município/UF'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(3) span.desc')?.textContent.trim() || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Bairro'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(4) span.desc')?.textContent.trim() || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[4]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Seção'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(1) span.desc')?.textContent.trim() || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['País'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(2) span.desc')?.textContent.trim() || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Zona'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(3) span.desc')?.textContent.trim() || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Localização'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(4) span.desc a')?.getAttribute('href') || 
+        document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[4]/span[2]/a', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.getAttribute('href') || 'Não encontrado';
       return data;
     });
 
