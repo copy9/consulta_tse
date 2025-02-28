@@ -64,13 +64,19 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Clicando no botão "Entrar"...');
     const buttonXPath = '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div/div/div[2]/div[2]/form/div[2]/button[2]';
-    await page.waitForSelector('button.btn-tse', { timeout: 30000 });
-    const button = await page.$x(buttonXPath);
-    if (!button.length) {
-      await page.screenshot({ path: 'debug_button_error.png' });
-      throw new Error('Botão Entrar não encontrado');
+    try {
+      await page.waitForSelector('button.btn-tse', { timeout: 60000 }); // Aumentei pra 60 segundos
+      const button = await page.$x(buttonXPath);
+      if (!button.length) {
+        await page.screenshot({ path: 'debug_button_error.png' });
+        throw new Error('Botão Entrar não encontrado pelo XPath');
+      }
+      await page.evaluate(btn => btn.click(), button[0]);
+    } catch (e) {
+      console.log('Botão não apareceu a tempo, tentando clicar direto no XPath...');
+      const button = await page.$x(buttonXPath);
+      if (button.length) await page.evaluate(btn => btn.click(), button[0]);
     }
-    await page.evaluate(btn => btn.click(), button[0]);
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando o redirecionamento para a página de resultados...');
@@ -78,24 +84,19 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
     let resultados = {};
-    try {
-      await page.waitForFunction(() => document.querySelector('body main app-root app-onde-votar app-box-local-votacao'), { timeout: 30000 });
-      resultados = await page.evaluate(() => {
-        const data = {};
-        data['Local de votação'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-        data['Endereço'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-        data['Município/UF'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-        data['Bairro'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[4]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-        data['Seção'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-        data['País'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-        data['Zona'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-        console.log('Extração concluída');
-        return data;
-      });
-    } catch (e) {
-      console.log('Resultados não apareceram a tempo, retornando o que foi capturado...');
-      console.log('Tentativa de captura finalizada'); // Linha extra pra 113
-    }
+    await page.waitForTimeout(5000); // Espera extra de 5 segundos
+    resultados = await page.evaluate(() => {
+      const data = {};
+      data['Local de votação'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Endereço'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Município/UF'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Bairro'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[4]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Seção'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['País'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Zona'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      console.log('Extração concluída'); // Linha pra 113
+      return data;
+    });
 
     console.log('Resultados extraídos:', JSON.stringify(resultados));
     await browser.close();
