@@ -36,7 +36,7 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input[type="text"]', { timeout: 90000 }); // Pega o primeiro campo de texto
+    await page.waitForSelector('input', { timeout: 90000 }); // Qualquer input pra garantir que o form carregou
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -45,18 +45,22 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Preenchendo CPF...');
-    const cpfSelector = await page.$('input#titulo-cpf-nome') || await page.$('input[formcontrolname="tituloCpfNome"]') || await page.$('input[type="text"]');
-    if (!cpfSelector) {
-      await page.screenshot({ path: 'debug_cpf_error.png' });
-      throw new Error('Campo CPF não encontrado');
-    }
-    await typeSlowly('input[type="text"]', cpf);
+    await typeSlowly('input', cpf); // Preenche o primeiro input (CPF)
 
     console.log('Preenchendo Nome da Mãe...');
-    await typeSlowly('input[formcontrolname="nomeMae"]', nome_mae);
+    const inputs = await page.$$('input'); // Pega todos os inputs
+    if (inputs.length < 2) {
+      await page.screenshot({ path: 'debug_mae_error.png' });
+      throw new Error('Campo Nome da Mãe não encontrado');
+    }
+    await typeSlowly('input:nth-child(2)', nome_mae); // Segundo input (Nome da Mãe)
 
     console.log('Preenchendo Data de Nascimento...');
-    await typeSlowly('input#dataNascimento', data_nascimento);
+    if (inputs.length < 3) {
+      await page.screenshot({ path: 'debug_data_error.png' });
+      throw new Error('Campo Data de Nascimento não encontrado');
+    }
+    await typeSlowly('input:nth-child(3)', data_nascimento); // Terceiro input (Data de Nascimento)
 
     console.log('Clicando no botão "Entrar"...');
     await page.click('button.btn-tse');
