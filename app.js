@@ -84,21 +84,23 @@ app.post('/verificar', async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 90000));
 
     console.log('Capturando print do container de resultados...');
-    const container = await page.$x('/html/body/main/div/div/div[3]/div/div/app-root/div');
-    if (!container.length) {
+    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
+    const container = await page.evaluate((xpath) => {
+      const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      return result ? { x: result.getBoundingClientRect().x, y: result.getBoundingClientRect().y, width: result.getBoundingClientRect().width, height: result.getBoundingClientRect().height } : null;
+    }, containerXPath);
+    if (!container) {
       await page.screenshot({ path: 'debug_no_results.png' });
       throw new Error('Container dos resultados não encontrado');
     }
-    const element = container[0];
-    const boundingBox = await element.boundingBox();
-    if (boundingBox) {
+    if (container) {
       await page.screenshot({
         path: 'resultados.png',
         clip: {
-          x: boundingBox.x,
-          y: boundingBox.y,
-          width: boundingBox.width,
-          height: boundingBox.height
+          x: container.x,
+          y: container.y,
+          width: container.width,
+          height: container.height
         }
       });
     } else {
