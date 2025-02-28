@@ -36,7 +36,7 @@ app.post('/verificar', async (req, res) => {
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 90000 }); // Qualquer input pra garantir que o form carregou
+    await page.waitForSelector('input', { timeout: 90000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -45,25 +45,30 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Preenchendo CPF...');
-    await typeSlowly('input', cpf); // Preenche o primeiro input (CPF)
+    await typeSlowly('input', cpf);
 
     console.log('Preenchendo Nome da Mãe...');
-    const inputs = await page.$$('input'); // Pega todos os inputs
+    const inputs = await page.$$('input');
     if (inputs.length < 2) {
       await page.screenshot({ path: 'debug_mae_error.png' });
       throw new Error('Campo Nome da Mãe não encontrado');
     }
-    await typeSlowly('input:nth-child(2)', nome_mae); // Segundo input (Nome da Mãe)
+    await typeSlowly('input:nth-child(2)', nome_mae);
 
     console.log('Preenchendo Data de Nascimento...');
     if (inputs.length < 3) {
       await page.screenshot({ path: 'debug_data_error.png' });
       throw new Error('Campo Data de Nascimento não encontrado');
     }
-    await typeSlowly('input:nth-child(3)', data_nascimento); // Terceiro input (Data de Nascimento)
+    await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    await page.click('button.btn-tse');
+    const button = await page.$('button[type="submit"]') || await page.$('button'); // Tenta o botão de submit ou qualquer botão
+    if (!button) {
+      await page.screenshot({ path: 'debug_button_error.png' });
+      throw new Error('Botão Entrar não encontrado');
+    }
+    await page.click('button'); // Clica no primeiro botão disponível
 
     console.log('Esperando o redirecionamento para a página de resultados...');
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
