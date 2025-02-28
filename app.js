@@ -31,11 +31,11 @@ app.post('/verificar', async (req, res) => {
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
       waitUntil: 'networkidle2',
-      timeout: 60000 
+      timeout: 20000 
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 90000 });
+    await page.waitForSelector('input', { timeout: 30000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -77,7 +77,7 @@ app.post('/verificar', async (req, res) => {
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 120000));
+    await new Promise(resolve => setTimeout(resolve, 80000));
 
     console.log('Capturando print do container de resultados...');
     const containerSelector = 'div.container-detalhes-ov';
