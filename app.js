@@ -29,7 +29,7 @@ app.post('/verificar', async (req, res) => {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
 
     console.log('Abrindo o site...');
-    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
+    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral', { 
       waitUntil: 'networkidle2',
       timeout: 60000 
     });
@@ -75,9 +75,6 @@ app.post('/verificar', async (req, res) => {
       }
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
-
-    console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 120000));
 
     console.log('Esperando 1 segundo...');
     await new Promise(resolve => setTimeout(resolve, 1000));
