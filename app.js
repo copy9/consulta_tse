@@ -34,13 +34,8 @@ app.post('/verificar', async (req, res) => {
       timeout: 60000 
     });
 
-    console.log('Aceitando termos de privacidade...');
-    await page.waitForSelector('button[title="Aceito"]', { timeout: 90000 });
-    await page.click('button[title="Aceito"]');
-    await page.waitForTimeout(2000);
-
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > input', { timeout: 90000 });
+    await page.waitForSelector('input', { timeout: 90000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -49,22 +44,22 @@ app.post('/verificar', async (req, res) => {
     }
 
     console.log('Preenchendo CPF...');
-    await typeSlowly('#modal > div > div > div.modal-corpo > div.login-form-row > form > input', cpf);
+    await typeSlowly('input', cpf);
 
     console.log('Preenchendo Nome da Mãe...');
-    const inputs = await page.$$('#modal > div > div > div.modal-corpo > div.login-form-row > form > input');
+    const inputs = await page.$$('input');
     if (inputs.length < 2) {
       await page.screenshot({ path: 'debug_mae_error.png' });
       throw new Error('Campo Nome da Mãe não encontrado');
     }
-    await typeSlowly('#modal > div > div > div.modal-corpo > div.login-form-row > form > input:nth-child(2)', nome_mae);
+    await typeSlowly('input:nth-child(2)', nome_mae);
 
     console.log('Preenchendo Data de Nascimento...');
     if (inputs.length < 3) {
       await page.screenshot({ path: 'debug_data_error.png' });
       throw new Error('Campo Data de Nascimento não encontrado');
     }
-    await typeSlowly('#modal > div > div > div.modal-corpo > div.login-form-row > form > input:nth-child(3)', data_nascimento);
+    await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
     await page.evaluate(() => {
