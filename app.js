@@ -80,7 +80,7 @@ app.post('/verificar', async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     console.log('Tirando o print...');
-    const containerXPath = '/html/body/div[4]/div/div/div/div/app-root/div';
+    const containerXPath = '/html/body/main/div/div';
     let container = await page.evaluateHandle((xpath) => {
       return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     }, containerXPath);
