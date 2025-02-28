@@ -61,7 +61,7 @@ app.post('/verificar', async (req, res) => {
     }
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
-    console.log('Clicando em Entrar...');
+       console.log('Clicando em Entrar...');
     await page.evaluate(() => {
       let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse');
       if (!button) button = document.querySelector('button.btn-tse');
@@ -75,6 +75,9 @@ app.post('/verificar', async (req, res) => {
       }
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
+
+    console.log('Esperando os resultados carregarem na tela...');
+    await page.waitForXPath('//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div', { timeout: 120000 });
 
     console.log('Esperando 1 segundo...');
     await new Promise(resolve => setTimeout(resolve, 1000));
