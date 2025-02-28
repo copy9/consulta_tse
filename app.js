@@ -77,16 +77,22 @@ app.post('/verificar', async (req, res) => {
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 90000));
+    await new Promise(resolve => setTimeout(resolve, 120000));
 
     console.log('Capturando print do container de resultados...');
     const containerSelector = 'div.container-detalhes-ov';
-    const container = await page.$(containerSelector);
+    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
+    let container = await page.$(containerSelector);
     if (!container) {
-      await page.screenshot({ path: 'debug_no_results.png' });
-      throw new Error('Container dos resultados não encontrado');
+      container = await page.evaluateHandle((xpath) => {
+        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      }, containerXPath);
+      if (!container) {
+        await page.screenshot({ path: 'debug_no_results.png' });
+        throw new Error('Container dos resultados não encontrado');
+      }
     }
-    const boundingBox = await container.boundingBox();
+    const boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
     if (boundingBox) {
       await page.screenshot({
         path: 'resultados.png',
