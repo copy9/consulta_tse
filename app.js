@@ -31,7 +31,7 @@ app.post('/verificar', async (req, res) => {
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
       waitUntil: 'networkidle2',
-      timeout: 8000 
+      timeout: 20000 
     });
 
     console.log('Esperando o formulário de login...');
