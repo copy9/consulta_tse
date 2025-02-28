@@ -86,26 +86,14 @@ app.post('/verificar', async (req, res) => {
     console.log('Sniffando os dados da tela...');
     const resultados = await page.evaluate(() => {
       const data = {};
-      const labels = [
-        'Local de votação',
-        'Endereço',
-        'Município/UF',
-        'Bairro',
-        'Seção',
-        'País',
-        'Zona',
-        'Localização'
-      ];
-
-      labels.forEach(label => {
-        const labelElement = Array.from(document.querySelectorAll('span.label')).find(
-          el => el.textContent.trim() === label
-        );
-        data[label] = labelElement && labelElement.nextElementSibling && labelElement.nextElementSibling.className.includes('desc') 
-          ? labelElement.nextElementSibling.textContent.trim() 
-          : 'Não encontrado';
-      });
-
+      data['Local de votação'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(1) span.desc')?.textContent.trim() || 'Não encontrado';
+      data['Endereço'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(2) span.desc')?.textContent.trim() || 'Não encontrado';
+      data['Município/UF'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(3) span.desc')?.textContent.trim() || 'Não encontrado';
+      data['Bairro'] = document.querySelector('div.container-detalhes-ov div.data-box:nth-child(4) span.desc')?.textContent.trim() || 'Não encontrado';
+      data['Seção'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(1) span.desc')?.textContent.trim() || 'Não encontrado';
+      data['País'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(2) span.desc')?.textContent.trim() || 'Não encontrado';
+      data['Zona'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(3) span.desc')?.textContent.trim() || 'Não encontrado';
+      data['Localização'] = document.querySelector('div.container-detalhes-ov div.lado-ov:nth-child(2) div.data-box:nth-child(4) span.desc a')?.getAttribute('href') || 'Não encontrado';
       return data;
     });
 
