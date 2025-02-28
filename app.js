@@ -64,27 +64,22 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Clicando no botão "Entrar"...');
     const buttonXPath = '/html/body/main/div/div/div[3]/div/div/app-root/app-modal-auth/div/div/div/div/div[2]/div[2]/form/div[2]/button[2]';
-    try {
-      await page.waitForSelector('button.btn-tse', { timeout: 60000 }); // Aumentei pra 60 segundos
-      const button = await page.$x(buttonXPath);
-      if (!button.length) {
-        await page.screenshot({ path: 'debug_button_error.png' });
-        throw new Error('Botão Entrar não encontrado pelo XPath');
-      }
-      await page.evaluate(btn => btn.click(), button[0]);
-    } catch (e) {
-      console.log('Botão não apareceu a tempo, tentando clicar direto no XPath...');
-      const button = await page.$x(buttonXPath);
-      if (button.length) await page.evaluate(btn => btn.click(), button[0]);
-    }
+    await page.evaluate((xpath) => {
+      const button = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      if (button) button.click();
+      else throw new Error('Botão Entrar não encontrado na popup');
+    }, buttonXPath);
     await page.screenshot({ path: 'debug_before_navigation.png' });
+    console.log('Clique no botão concluído'); // Linha extra
 
     console.log('Esperando o redirecionamento para a página de resultados...');
     await new Promise(resolve => setTimeout(resolve, 15000));
+    console.log('Primeira espera concluída'); // Linha extra
 
     console.log('Esperando o conteúdo da página de resultados carregar...');
     let resultados = {};
-    await page.waitForTimeout(5000); // Espera extra de 5 segundos
+    await page.waitForTimeout(5000);
+    console.log('Segunda espera concluída'); // Linha extra
     resultados = await page.evaluate(() => {
       const data = {};
       data['Local de votação'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
@@ -94,7 +89,7 @@ app.post('/verificar', async (req, res) => {
       data['Seção'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
       data['País'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
       data['Zona'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
-      console.log('Extração concluída'); // Linha pra 113
+      console.log('Extração concluída');
       return data;
     });
 
