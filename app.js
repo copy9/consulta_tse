@@ -22,7 +22,8 @@ app.post('/verificar', async (req, res) => {
     console.log('Iniciando o navegador...');
     browser = await puppeteer.launch({ 
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      protocolTimeout: 1200000 // Aumenta o timeout global para 20 minutos
     });
     const page = await browser.newPage();
 
@@ -31,11 +32,11 @@ app.post('/verificar', async (req, res) => {
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
       waitUntil: 'networkidle2',
-      timeout: 60000 
+      timeout: 120000 // Aumenta o timeout de navegação para 2 minutos
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 90000 });
+    await page.waitForSelector('input', { timeout: 120000 });
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
@@ -52,7 +53,7 @@ app.post('/verificar', async (req, res) => {
       await page.screenshot({ path: 'debug_mae_error.png' });
       throw new Error('Campo Nome da Mãe não encontrado');
     }
-    await typeSlowly('input:nth-child(2)', nome_mae);
+    await typeSlow('input:nth-child(2)', nome_mae);
 
     console.log('Preenchendo Data de Nascimento...');
     if (inputs.length < 3) {
@@ -76,43 +77,43 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-   console.log('Esperando os resultados carregarem na tela...');
-await page.waitForFunction(
-  'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
-  { timeout: 600000 }
-);
+    console.log('Esperando os resultados carregarem na tela...');
+    await page.waitForFunction(
+      'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
+      { timeout: 600000 }
+    );
 
-console.log('Esperando 1 segundo...');
-await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Esperando 1 segundo...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-console.log('Tirando o print...');
-const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
-let container = await page.evaluateHandle((xpath) => {
-  return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-}, containerXPath);
-if (!container) {
-  await page.screenshot({ path: 'debug_no_results.png' });
-  throw new Error('Container dos resultados não encontrado');
-}
-let boundingBox;
-try {
-  boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
-} catch (e) {
-  boundingBox = null;
-}
-if (boundingBox) {
-  await page.screenshot({
-    path: 'resultados.png',
-    clip: {
-      x: Math.max(0, boundingBox.x),
-      y: Math.max(0, boundingBox.y),
-      width: Math.min(boundingBox.width, 1920 - boundingBox.x),
-      height: Math.min(boundingBox.height, 1080 - boundingBox.y)
+    console.log('Tirando o print...');
+    const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
+    let container = await page.evaluateHandle((xpath) => {
+      return document.evaluate(xhrpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    }, containerXPath);
+    if (!container) {
+      await page.screenshot({ path: 'debug_no_results.png' });
+      throw new Error('Container dos resultados não encontrado');
     }
-  });
-} else {
-  await page.screenshot({ path: 'resultados_full.png' });
-}
+    let boundingBox;
+    try {
+      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
+    } catch (e) {
+      boundingBox = null;
+    }
+    if (boundingBox) {
+      await page.screenshot({
+        path: 'resultados.png',
+        clip: {
+          x: Math.max(0, boundingBox.x),
+          y: Math.max(0, boundingBox.y),
+          width: Math.min(boundingBox.width, 1920 - boundingBox.x),
+          height: Math.min(boundingBox.height, 1080 - boundingBox.y)
+        }
+      });
+    } else {
+      await page.screenshot({ path: 'resultados_full.png' });
+    }
 
     console.log('Print capturado com sucesso');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
