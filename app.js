@@ -70,17 +70,20 @@ app.post('/verificar', async (req, res) => {
         button.scrollIntoView({ behavior: 'smooth', block: 'center' });
         button.click();
         document.querySelector(selector).dispatchEvent(new Event('click', { bubbles: true }));
-        console.log('Botão Entrar clicado com sucesso');
       } else {
-        console.log('Botão Entrar não encontrado, forçando clique genérico');
         const fallbackButton = document.querySelector('button.btn-tse');
-        if (fallbackButton) fallbackButton.click();
+        if (fallbackButton) {
+          fallbackButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          fallbackButton.click();
+        } else {
+          throw new Error('Botão Entrar não encontrado');
+        }
       }
     }, buttonSelector);
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await page.waitForTimeout(20000);
+    await new Promise(resolve => setTimeout(resolve, 20000)); // Substitui waitForTimeout
 
     console.log('Sniffando os dados da tela...');
     const resultados = await page.evaluate(() => {
