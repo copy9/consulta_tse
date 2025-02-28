@@ -80,7 +80,7 @@ app.post('/verificar', async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 120000));
 
     console.log('Capturando print do container de resultados...');
-    const containerSelector = '#content > app-root > div > app-onde-votar > div > div.componente-onde-votar > app-box-local-votacao > div")';
+    const containerSelector = '#content > app-root > div > app-onde-votar > div > div.componente-onde-votar > app-box-local-votacao > div';
     const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
     let container = await page.$(containerSelector);
     if (!container) {
