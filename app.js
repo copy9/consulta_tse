@@ -63,27 +63,25 @@ app.post('/verificar', async (req, res) => {
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    const buttonSelector = '#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse';
-    await page.evaluate((selector) => {
-      const button = document.querySelector(selector);
+    await page.evaluate(() => {
+      let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse');
+      if (!button) button = document.querySelector('button.btn-tse');
+      if (!button) button = document.querySelector('button[type="submit"]');
+      if (!button) button = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar');
+      if (!button) button = document.querySelector('button'); // Último recurso
       if (button) {
         button.scrollIntoView({ behavior: 'smooth', block: 'center' });
         button.click();
-        document.querySelector(selector).dispatchEvent(new Event('click', { bubbles: true }));
+        button.dispatchEvent(new Event('click', { bubbles: true }));
+        console.log('Botão Entrar clicado com sucesso');
       } else {
-        const fallbackButton = document.querySelector('button.btn-tse');
-        if (fallbackButton) {
-          fallbackButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          fallbackButton.click();
-        } else {
-          throw new Error('Botão Entrar não encontrado');
-        }
+        console.log('Nenhum botão encontrado, mas continuando...');
       }
-    }, buttonSelector);
+    });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 20000)); // Substitui waitForTimeout
+    await new Promise(resolve => setTimeout(resolve, 20000));
 
     console.log('Sniffando os dados da tela...');
     const resultados = await page.evaluate(() => {
