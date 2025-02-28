@@ -81,7 +81,7 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Capturando print do container de resultados...');
     const containerSelector = 'div.container-detalhes-ov';
-    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
+    const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
     let container = await page.$(containerSelector);
     if (!container) {
       container = await page.evaluateHandle((xpath) => {
