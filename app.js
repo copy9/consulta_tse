@@ -76,7 +76,17 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando os resultados carregarem na tela...');
+    
+      }
+    }
+    let boundingBox;
+    try {
+      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
+    } catch (e) {
+      boundingBox = null;
+    }
+
+console.log('Esperando os resultados carregarem na tela...');
     await new Promise(resolve => setTimeout(resolve, 120000));
 
     console.log('Capturando print do container de resultados...');
@@ -90,14 +100,6 @@ app.post('/verificar', async (req, res) => {
       if (!container) {
         await page.screenshot({ path: 'debug_no_results.png' });
         throw new Error('Container dos resultados não encontrado');
-      }
-    }
-    let boundingBox;
-    try {
-      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
-    } catch (e) {
-      boundingBox = null;
-    }
     if (boundingBox) {
       await page.screenshot({
         path: 'resultados.png',
