@@ -63,42 +63,33 @@ app.post('/verificar', async (req, res) => {
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    const button = await page.$('button[type="submit"]') || await page.$('button');
-    if (!button) {
-      await page.screenshot({ path: 'debug_button_error.png' });
-      throw new Error('Botão Entrar não encontrado');
-    }
-    await page.click('button');
+    const buttonSelector = '#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse';
+    await page.waitForSelector(buttonSelector, { timeout: 60000 }); // Espera o botão aparecer
+    await page.evaluate((selector) => {
+      const button = document.querySelector(selector);
+      if (button) {
+        button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        button.click(); // Clique normal
+        document.querySelector(selector).dispatchEvent(new Event('click', { bubbles: true })); // Força evento
+      } else {
+        throw new Error('Botão Entrar não encontrado');
+      }
+    }, buttonSelector);
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando o redirecionamento para a página de resultados...');
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 120000 });
+    console.log('Esperando os resultados carregarem na tela...');
+    await page.waitForTimeout(20000); // Espera 20 segundos pros resultados
 
-    console.log('Esperando o conteúdo da página de resultados carregar...');
-    await page.waitForSelector('span.label', { timeout: 120000 });
-
-    console.log('Extraindo os resultados...');
+    console.log('Sniffando os dados da tela...');
     const resultados = await page.evaluate(() => {
       const data = {};
-      const labels = [
-        'Local de votação',
-        'Endereço',
-        'Município/UF',
-        'Bairro',
-        'Seção',
-        'País',
-        'Zona',
-        'Localização',
-      ];
-
-      labels.forEach(label => {
-        const labelElement = Array.from(document.querySelectorAll('span.label')).find(
-          el => el.textContent.trim() === label
-        );
-        data[label] = labelElement && labelElement.nextElementSibling ? 
-          labelElement.nextElementSibling.textContent.trim() : 'Não encontrado';
-      });
-
+      data['Local de votação'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Endereço'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Município/UF'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Bairro'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[1]/div[4]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Seção'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[1]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['País'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[2]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
+      data['Zona'] = document.evaluate('/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div/div[2]/div[3]/span[2]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue?.textContent.trim() || 'Não encontrado';
       return data;
     });
 
