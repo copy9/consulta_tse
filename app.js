@@ -92,7 +92,12 @@ app.post('/verificar', async (req, res) => {
         throw new Error('Container dos resultados não encontrado');
       }
     }
-    const boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
+    let boundingBox;
+    try {
+      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
+    } catch (e) {
+      boundingBox = null;
+    }
     if (boundingBox) {
       await page.screenshot({
         path: 'resultados.png',
@@ -109,8 +114,12 @@ app.post('/verificar', async (req, res) => {
 
     console.log('Print capturado com sucesso');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
+    if (base64Image) {
+      res.json({ status: 'success', image: base64Image });
+    } else {
+      throw new Error('Falha ao gerar a imagem Base64');
+    }
     await browser.close();
-    res.json({ status: 'success', image: base64Image });
   } catch (error) {
     console.log('Erro detectado:', error.message);
     if (browser) await browser.close();
