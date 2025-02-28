@@ -23,7 +23,8 @@ app.post('/verificar', async (req, res) => {
     browser = await puppeteer.launch({ 
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      protocolTimeout: 1200000 // Aumenta o timeout global para 20 minutos
+      protocolTimeout: 1200000, // Aumenta o timeout global para 20 minutos
+      launchTimeout: 60000 // Aumenta o tempo de inicialização para 60 segundos
     });
     const page = await browser.newPage();
 
@@ -53,7 +54,7 @@ app.post('/verificar', async (req, res) => {
       await page.screenshot({ path: 'debug_mae_error.png' });
       throw new Error('Campo Nome da Mãe não encontrado');
     }
-    await typeSlow('input:nth-child(2)', nome_mae);
+    await typeSlowly('input:nth-child(2)', nome_mae);
 
     console.log('Preenchendo Data de Nascimento...');
     if (inputs.length < 3) {
@@ -89,7 +90,7 @@ app.post('/verificar', async (req, res) => {
     console.log('Tirando o print...');
     const containerXPath = '//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div';
     let container = await page.evaluateHandle((xpath) => {
-      return document.evaluate(xhrpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     }, containerXPath);
     if (!container) {
       await page.screenshot({ path: 'debug_no_results.png' });
