@@ -76,6 +76,9 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
+    console.log('Esperando os resultados carregarem na tela...');
+    await new Promise(resolve => setTimeout(resolve, 120000));
+
     console.log('Esperando 1 segundo após clicar no botão "Entrar"...');
     await new Promise(resolve => setTimeout(resolve, 1000));
 
