@@ -81,8 +81,7 @@ app.post('/verificar', async (req, res) => {
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando os resultados carregarem na tela...');
-    await page.waitForSelector('div.container-detalhes-ov', { timeout: 60000 }); // Espera o container aparecer
-    await new Promise(resolve => setTimeout(resolve, 60000)); // Espera 60 segundos
+    await new Promise(resolve => setTimeout(resolve, 30000));
 
     console.log('Sniffando os dados da tela...');
     const resultados = await page.evaluate(() => {
