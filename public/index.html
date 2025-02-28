@@ -44,6 +44,7 @@
     <div id="resultados">
         <h3>Resultados</h3>
         <div id="conteudo"></div>
+        <img id="resultImage" alt="Resultados da pesquisa de local de votação">
     </div>
 
     <script>
@@ -76,3 +77,32 @@
                 const resultados = await response.json();
 
                 document.getElementById('loading').style.display = 'none';
+                exibirResultados(resultados);
+                document.querySelectorAll('input').forEach(input => input.disabled = true);
+                document.querySelector('button').disabled = true;
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                alert("Erro ao conectar com o servidor: " + error.message);
+            }
+        });
+
+        function exibirResultados(resultados) {
+            const divResultados = document.getElementById('resultados');
+            const conteudo = document.getElementById('conteudo');
+            const resultImage = document.getElementById('resultImage');
+            divResultados.style.display = 'block';
+
+            if (resultados.status === 'success' && resultados.image) {
+                divResultados.classList.remove('error');
+                conteudo.innerHTML = '';
+                resultImage.src = 'data:image/png;base64,' + resultados.image;
+                resultImage.style.display = 'block';
+            } else {
+                divResultados.classList.add('error');
+                conteudo.innerHTML = `<p>${resultados.message || 'Erro ao carregar os resultados'}</p>`;
+                resultImage.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
