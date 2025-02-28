@@ -76,35 +76,38 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando os resultados carregarem na tela...');
-    await page.waitForXPath('//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div', { timeout: 120000 });
+   console.log('Esperando os resultados carregarem na tela...');
+await page.waitForFunction(
+  'document.evaluate("//*[@id=\\\'content\\\']/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null',
+  { timeout: 120000 }
+);
 
-    console.log('Esperando 1 segundo...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+console.log('Esperando 1 segundo...');
+await new Promise(resolve => setTimeout(resolve, 1000));
 
-    console.log('Extraindo dados dos resultados...');
-    const results = await page.evaluate(() => {
-      const container = document.evaluate('//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      if (!container) return null;
+console.log('Extraindo dados dos resultados...');
+const results = await page.evaluate(() => {
+  const container = document.evaluate('//*[@id="content"]/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div/div', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  if (!container) return null;
 
-      const dataBoxes = container.querySelectorAll('.data-box');
-      const resultData = {};
-      dataBoxes.forEach(box => {
-        const label = box.querySelector('.label')?.textContent.trim() || '';
-        const desc = box.querySelector('.desc')?.textContent.trim() || '';
-        if (label) resultData[label] = desc;
-      });
-      return resultData;
-    });
+  const dataBoxes = container.querySelectorAll('.data-box');
+  const resultData = {};
+  dataBoxes.forEach(box => {
+    const label = box.querySelector('.label')?.textContent.trim() || '';
+    const desc = box.querySelector('.desc')?.textContent.trim() || '';
+    if (label) resultData[label] = desc;
+  });
+  return resultData;
+});
 
-    if (!results) {
-      await page.screenshot({ path: 'debug_no_results.png' });
-      throw new Error('Dados dos resultados não encontrados');
-    }
+if (!results) {
+  await page.screenshot({ path: 'debug_no_results.png' });
+  throw new Error('Dados dos resultados não encontrados');
+}
 
-    console.log('Dados extraídos com sucesso:', results);
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({ status: 'success', data: results }));
+console.log('Dados extraídos com sucesso:', results);
+res.setHeader('Content-Type', 'application/json');
+res.send(JSON.stringify({ status: 'success', data: results }));
 
     await browser.close();
   } catch (error) {
