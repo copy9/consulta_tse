@@ -38,9 +38,10 @@ app.post('/verificar', async (req, res) => {
     await page.waitForSelector('input', { timeout: 9000 });
 
     async function typeSlowly(selector, text) {
-      for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 1200) + 50 });
-      }
+  for (const char of text) {
+    await page.type(selector, char, { delay: 10 });
+  }
+}
     }
 
     console.log('Preenchendo CPF...');
@@ -62,39 +63,28 @@ app.post('/verificar', async (req, res) => {
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-    await page.evaluate(() => {
-      let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse');
-      if (!button) button = document.querySelector('button.btn-tse');
-      if (!button) button = document.querySelector('button[type="submit"]');
-      if (!button) button = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar');
-      if (!button) button = document.querySelector('button');
-      if (button) {
-        button.scrollIntoView({ behavior: 'auto', block: 'center' });
-        button.click();
-        button.dispatchEvent(new Event('click', { bubbles: true }));
-      } else {
-        throw new Error('Botão "Entrar" não encontrado');
-      }
-    });
+await page.evaluate(() => {
+  let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse') ||
+              document.querySelector('button.btn-tse') ||
+              document.querySelector('button[type="submit"]') ||
+              Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar') ||
+              document.querySelector('button');
+  if (button) button.click();
+});
+    await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    // Removi o waitForNavigation e agora só observo a mudança de texto na mesma página
     console.log('Esperando o texto "Seu título eleitoral está" aparecer...');
     await page.waitForFunction(
       'document.body.innerText.includes("Seu título eleitoral está")',
-      { timeout: 15000 }
-    ).catch(async () => {
-      await page.screenshot({ path: 'debug_no_text.png' });
-      throw new Error('Texto "Seu título eleitoral está" não encontrado após o clique');
+      { timeout: 10000 }
+    ).catch(() => {
+      throw new Error('Texto "Seu título eleitoral está" não encontrado');
     });
 
-    // Pequeno delay para garantir que o conteúdo esteja renderizado
-    await page.waitForTimeout(2000);
-
-    console.log('Capturando screenshot dos resultados...');
+    console.log('Texto encontrado, capturando print...');
     const containerSelector = 'div.container-detalhes-ov';
     const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
     let container = await page.$(containerSelector);
-
     if (!container) {
       container = await page.evaluateHandle((xpath) => {
         return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -126,7 +116,7 @@ app.post('/verificar', async (req, res) => {
       await page.screenshot({ path: 'resultados_full.png' });
     }
 
-    console.log('Screenshot capturado com sucesso');
+    console.log('Print capturado com sucesso');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
     if (base64Image) {
       res.setHeader('Content-Type', 'application/json');
