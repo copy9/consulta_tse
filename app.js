@@ -76,12 +76,12 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando o texto "Este é o seu local de votação" aparecer...');
+    console.log('Esperando o texto "Seu título eleitoral está" aparecer...');
     await page.waitForFunction(
-      'document.body.innerText.includes("Este é o seu local de votação")',
+      'document.body.innerText.includes("Seu título eleitoral está")',
       { timeout: 10000 }
     ).catch(() => {
-      throw new Error('Texto "Este é o seu local de votação" não encontrado');
+      throw new Error('Texto "Seu título eleitoral está" não encontrado');
     });
 
     console.log('Texto encontrado, capturando print...');
