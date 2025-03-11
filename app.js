@@ -77,27 +77,19 @@ app.post('/verificar', async (req, res) => {
       }
     });
 
-    // Aguarda a navegação para a nova página
-    console.log('Aguardando navegação após clique...');
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch((err) => {
-      console.log('Erro ao aguardar navegação:', err.message);
-      throw new Error('Navegação após clique falhou');
-    });
-
-    // *** Aqui é onde ele espera a mudança na escrita da página ***
+    // Removi o waitForNavigation e agora só observo a mudança de texto na mesma página
     console.log('Esperando o texto "Seu título eleitoral está" aparecer...');
     await page.waitForFunction(
       'document.body.innerText.includes("Seu título eleitoral está")',
       { timeout: 15000 }
     ).catch(async () => {
       await page.screenshot({ path: 'debug_no_text.png' });
-      throw new Error('Texto "Seu título eleitoral está" não encontrado após navegação');
+      throw new Error('Texto "Seu título eleitoral está" não encontrado após o clique');
     });
 
-    // Pequeno delay para garantir que o conteúdo esteja totalmente carregado
+    // Pequeno delay para garantir que o conteúdo esteja renderizado
     await page.waitForTimeout(2000);
 
-    // *** Só tira o print depois que o texto mudou ***
     console.log('Capturando screenshot dos resultados...');
     const containerSelector = 'div.container-detalhes-ov';
     const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
