@@ -1,113 +1,186 @@
-const express = require('express');
-const puppeteer = require('puppeteer');
-const app = express();
-const port = 3000;
+import webbrowser
+from flask import Flask, request, render_template, jsonify
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.action_chains import ActionChains
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import random
+import threading
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app = Flask(__name__)
 
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: 'public' });
-});
+# Variáveis globais para controle da execução
+dados_prontos = False
+driver = None
 
-app.post('/verificar', async (req, res) => {
-  const { cpf, nome_mae, data_nascimento } = req.body;
+# Função para rodar o Selenium (mantida intacta, só adicionado headless)
+def run_selenium(cpf, nome_mae, data_nascimento):
+    global driver
+    options = webdriver.ChromeOptions()
+    options.add_argument('--start-maximized')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--incognito')
+    options.add_argument('--headless')  # Adicionado para rodar em segundo plano
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
+    options.add_argument(f'user-agent={user_agent}')
 
-  if (!cpf || !nome_mae || !data_nascimento) {
-    return res.status(400).json({ status: 'error', message: 'Preencha todos os campos!' });
-  }
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    actions = ActionChains(driver)
 
-  let browser;
-  try {
-    console.log('Iniciando o navegador...');
-    browser = await puppeteer.launch({ 
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
+    def wait_and_find_element(driver, by, selector, wait_time=7):
+        try:
+            return WebDriverWait(driver, wait_time).until(
+                EC.presence_of_element_located((by, selector))
+            )
+        except Exception as e:
+            print(f"Elemento não encontrado: {selector}, Erro: {e}")
+            return None
 
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
+    def wait_and_click_element(driver, by, selector, wait_time=7):
+        try:
+            element = WebDriverWait(driver, wait_time).until(
+                EC.element_to_be_clickable((by, selector))
+            )
+            actions.move_by_offset(random.randint(-100, 100), random.randint(-50, 50)).perform()
+            actions.move_to_element(element).click().perform()
+            return True
+        except Exception as e:
+            print(f"Erro ao clicar no elemento {selector}: {e}")
+            return False
 
-    console.log('Carregando a página do TSE...');
-    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
-      waitUntil: 'networkidle2',
-      timeout: 70000 
-    });
+    def organic_type(element, text):
+        if element:
+            for char in text:
+                element.send_keys(char)
+                time.sleep(random.uniform(0.05, 0.8))
 
-    console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 9000 });
+    def get_text(driver, label):
+        try:
+            xpath = f"//span[contains(@class, 'label') and contains(text(), '{label}')]/following-sibling::span[contains(@class, 'desc')]"
+            element = driver.find_element(By.XPATH, xpath)
+            return element.text.strip()
+        except Exception:
+            return "Não encontrado"
 
-    async function typeSlowly(selector, text) {
-      for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 800) + 50 });
-      }
-    }
+    resultados = {}
+    try:
+        driver.get("https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar")
+        print("Aguardando a página carregar...")
+        if wait_and_find_element(driver, By.ID, "titulo-cpf-nome"):
+            print("Página carregada!")
 
-    console.log('Preenchendo CPF...');
-    await typeSlowly('input', cpf);
+        aceito_button = wait_and_find_element(driver, By.CSS_SELECTOR, "button.btn")
+        if aceito_button:
+            if wait_and_click_element(driver, By.CSS_SELECTOR, "button.btn"):
+                print("Botão 'Aceito' clicado!")
+                time.sleep(random.uniform(0.3, 2.0))
+            else:
+                print("Não foi possível clicar no botão 'Aceito'.")
+        else:
+            print("Botão 'Aceito' não encontrado, seguindo normalmente...")
 
-    console.log('Preenchendo Nome da Mãe...');
-    const inputs = await page.$$('input');
-    if (inputs.length < 2) {
-      await page.screenshot({ path: 'debug_mae_error.png' });
-      throw new Error('Campo Nome da Mãe não encontrado');
-    }
-    await typeSlowly('input:nth-child(2)', nome_mae);
+        cpf_input = wait_and_find_element(driver, By.ID, "titulo-cpf-nome")
+        nome_mae_input = wait_and_find_element(driver, By.CSS_SELECTOR, "input[formcontrolname='nomeMae']")
+        data_nascimento_input = wait_and_find_element(driver, By.ID, "dataNascimento")
 
-    console.log('Preenchendo Data de Nascimento...');
-    if (inputs.length < 3) {
-      await page.screenshot({ path: 'debug_data_error.png' });
-      throw new Error('Campo Data de Nascimento não encontrado');
-    }
-    await typeSlowly('input:nth-child(3)', data_nascimento);
+        if cpf_input:
+            organic_type(cpf_input, cpf)
+            print("CPF preenchido.")
+        if nome_mae_input:
+            organic_type(nome_mae_input, nome_mae)
+            print("Nome da mãe preenchido.")
+        if data_nascimento_input:
+            organic_type(data_nascimento_input, data_nascimento)
+            print("Data de nascimento preenchida.")
 
-    console.log('Clicando no botão "Entrar"...');
-    await page.evaluate(() => {
-      let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse');
-      if (!button) button = document.querySelector('button.btn-tse');
-      if (!button) button = document.querySelector('button[type="submit"]');
-      if (!button) button = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar');
-      if (!button) button = document.querySelector('button');
-      if (button) {
-        button.scrollIntoView({ behavior: 'auto', block: 'center' });
-        button.click();
-        button.dispatchEvent(new Event('click', { bubbles: true }));
-      } else {
-        throw new Error('Botão "Entrar" não encontrado');
-      }
-    });
+        print("Aguardando 5-7 segundos para garantir o preenchimento...")
+        time.sleep(random.uniform(3.0, 5.0))
 
-    console.log('Aguardando navegação após clique...');
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(async (err) => {
-      await page.screenshot({ path: 'debug_navigation_error.png' });
-      console.log('Erro ao aguardar navegação:', err.message);
-      throw new Error('Navegação após clique falhou');
-    });
+        print("Tentando clicar no botão 'Entrar'...")
+        botao_entrar = wait_and_find_element(driver, By.CSS_SELECTOR, "button.btn-tse")
+        if botao_entrar:
+            if botao_entrar.is_enabled() and botao_entrar.is_displayed():
+                driver.execute_script("arguments[0].scrollIntoView(true);", botao_entrar)
+                time.sleep(1)
+                driver.execute_script("arguments[0].click();", botao_entrar)
+                print("Botão 'Entrar' clicado com sucesso via JavaScript!")
+                time.sleep(random.uniform(0.1, 1.0))
+            else:
+                print("Botão 'Entrar' não está habilitado ou visível.")
+                driver.save_screenshot("erro_botao_entrar_desabilitado.png")
+                raise Exception("Botão 'Entrar' não está clicável.")
+        else:
+            print("Botão 'Entrar' não encontrado. Capturando erro...")
+            driver.save_screenshot("erro_botao_entrar.png")
+            raise Exception("Falha ao localizar o botão 'Entrar'.")
 
-    console.log('Aguardando renderização da página...');
-    await page.waitForTimeout(2000);
+        if wait_and_find_element(driver, By.XPATH, "//div[contains(text(),'Local de votação')]"):
+            print("Resultado carregado!")
 
-    console.log('Capturando screenshot após o clique...');
-    await page.screenshot({ path: 'resultados.png', fullPage: true });
+        labels = [
+            "Local de votação",
+            "Endereço",
+            "Município/UF",
+            "Bairro",
+            "Seção",
+            "País",
+            "Zona",
+            "Localização"
+        ]
 
-    console.log('Screenshot capturado com sucesso');
-    const base64Image = await page.screenshot({ encoding: 'base64', type: 'png', fullPage: true });
-    if (base64Image) {
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ status: 'success', image: base64Image }));
-    } else {
-      throw new Error('Falha ao gerar a imagem Base64');
-    }
+        for label in labels:
+            resultados[label] = get_text(driver, label)
 
-    await browser.close();
-  } catch (error) {
-    console.log('Erro detectado:', error.message);
-    if (browser) await browser.close();
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({ status: 'error', message: error.message }));
-  }
-});
+        print("Resultados coletados.")
+        return {"status": "success", "data": resultados}
 
-app.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
-});
+    except Exception as e:
+        print(f"Ocorreu um erro: {e}")
+        return {"status": "error", "message": str(e)}
+
+    finally:
+        print("Navegador permanecerá aberto. Feche manualmente ou use Ctrl+C no terminal.")
+        if driver:
+            driver.quit()
+
+# Rota para exibir a página HTML
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Rota para verificar os dados e iniciar a pesquisa
+@app.route('/verificar', methods=['POST'])
+def verificar():
+    global dados_prontos
+    cpf = request.form.get('cpf')
+    nome_mae = request.form.get('nome_mae')
+    data_nascimento = request.form.get('data_nascimento')
+
+    if not cpf or not nome_mae or not data_nascimento:
+        return jsonify({"status": "error", "message": "Por favor, preencha todos os campos!"}), 400
+
+    dados_prontos = True
+    # Usando threading para busca assíncrona e esperando o resultado
+    resultados = [None]
+    def run_and_store():
+        resultados[0] = run_selenium(cpf, nome_mae, data_nascimento)
+
+    thread = threading.Thread(target=run_and_store, daemon=True)
+    thread.start()
+    thread.join()  # Espera a busca terminar
+    return jsonify(resultados[0])
+
+if __name__ == '__main__':
+    url = 'http://localhost:5000'
+    webbrowser.open(url)
+    app.run(debug=True)
+
+if driver:
+    driver.quit()
