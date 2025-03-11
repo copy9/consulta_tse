@@ -38,10 +38,9 @@ app.post('/verificar', async (req, res) => {
     await page.waitForSelector('input', { timeout: 9000 });
 
     async function typeSlowly(selector, text) {
-  for (const char of text) {
-    await page.type(selector, char, { delay: 10 });
-  }
-}
+      for (const char of text) {
+        await page.type(selector, char, { delay: Math.floor(Math.random() * 1200) + 50 });
+      }
     }
 
     console.log('Preenchendo CPF...');
@@ -63,14 +62,18 @@ app.post('/verificar', async (req, res) => {
     await typeSlowly('input:nth-child(3)', data_nascimento);
 
     console.log('Clicando no botão "Entrar"...');
-await page.evaluate(() => {
-  let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse') ||
-              document.querySelector('button.btn-tse') ||
-              document.querySelector('button[type="submit"]') ||
-              Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar') ||
-              document.querySelector('button');
-  if (button) button.click();
-});
+    await page.evaluate(() => {
+      let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse');
+      if (!button) button = document.querySelector('button.btn-tse');
+      if (!button) button = document.querySelector('button[type="submit"]');
+      if (!button) button = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar');
+      if (!button) button = document.querySelector('button');
+      if (button) {
+        button.scrollIntoView({ behavior: 'auto', block: 'center' });
+        button.click();
+        button.dispatchEvent(new Event('click', { bubbles: true }));
+      }
+    });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
     console.log('Esperando o texto "Seu título eleitoral está" aparecer...');
