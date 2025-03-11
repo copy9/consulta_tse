@@ -1,3 +1,15 @@
+const express = require('express');
+const puppeteer = require('puppeteer');
+const app = express();
+const port = 3000;
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+  res.sendFile('index.html', { root: 'public' });
+});
+
 app.post('/verificar', async (req, res) => {
   const { cpf, nome_mae, data_nascimento } = req.body;
 
@@ -65,7 +77,6 @@ app.post('/verificar', async (req, res) => {
       }
     });
 
-    // Aguarda a navegação após o clique
     console.log('Aguardando navegação após clique...');
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(async (err) => {
       await page.screenshot({ path: 'debug_navigation_error.png' });
@@ -73,11 +84,9 @@ app.post('/verificar', async (req, res) => {
       throw new Error('Navegação após clique falhou');
     });
 
-    // Pequeno delay para garantir que a página esteja totalmente carregada
     console.log('Aguardando renderização da página...');
     await page.waitForTimeout(2000);
 
-    // Captura o screenshot da página inteira
     console.log('Capturando screenshot após o clique...');
     await page.screenshot({ path: 'resultados.png', fullPage: true });
 
