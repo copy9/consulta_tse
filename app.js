@@ -76,10 +76,15 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 600));
+    console.log('Esperando o texto "Este é o seu local de votação" aparecer...');
+    await page.waitForFunction(
+      'document.body.innerText.includes("Este é o seu local de votação")',
+      { timeout: 10000 }
+    ).catch(() => {
+      throw new Error('Texto "Este é o seu local de votação" não encontrado');
+    });
 
-    console.log('Capturando print do container de resultados...');
+    console.log('Texto encontrado, capturando print...');
     const containerSelector = 'div.container-detalhes-ov';
     const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
     let container = await page.$(containerSelector);
@@ -92,12 +97,14 @@ app.post('/verificar', async (req, res) => {
         throw new Error('Container dos resultados não encontrado');
       }
     }
+
     let boundingBox;
     try {
       boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
     } catch (e) {
       boundingBox = null;
     }
+
     if (boundingBox) {
       await page.screenshot({
         path: 'resultados.png',
