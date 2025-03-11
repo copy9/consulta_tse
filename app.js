@@ -1,15 +1,3 @@
-const express = require('express');
-const puppeteer = require('puppeteer');
-const app = express();
-const port = 3000;
-
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
-
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: 'public' });
-});
-
 app.post('/verificar', async (req, res) => {
   const { cpf, nome_mae, data_nascimento } = req.body;
 
@@ -39,7 +27,7 @@ app.post('/verificar', async (req, res) => {
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 1200) + 50 });
+        await page.type(selector, char, { delay: Math.floor(Math.random() * 800) + 50 });
       }
     }
 
@@ -72,61 +60,36 @@ app.post('/verificar', async (req, res) => {
         button.scrollIntoView({ behavior: 'auto', block: 'center' });
         button.click();
         button.dispatchEvent(new Event('click', { bubbles: true }));
+      } else {
+        throw new Error('Botão "Entrar" não encontrado');
       }
     });
-    await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando o texto "Seu título eleitoral está" aparecer...');
-    await page.waitForFunction(
-      'document.body.innerText.includes("Seu título eleitoral está")',
-      { timeout: 10000 }
-    ).catch(() => {
-      throw new Error('Texto "Seu título eleitoral está" não encontrado');
+    // Aguarda a navegação após o clique
+    console.log('Aguardando navegação após clique...');
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(async (err) => {
+      await page.screenshot({ path: 'debug_navigation_error.png' });
+      console.log('Erro ao aguardar navegação:', err.message);
+      throw new Error('Navegação após clique falhou');
     });
 
-    console.log('Texto encontrado, capturando print...');
-    const containerSelector = 'div.container-detalhes-ov';
-    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
-    let container = await page.$(containerSelector);
-    if (!container) {
-      container = await page.evaluateHandle((xpath) => {
-        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      }, containerXPath);
-      if (!container) {
-        await page.screenshot({ path: 'debug_no_results.png' });
-        throw new Error('Container dos resultados não encontrado');
-      }
-    }
+    // Pequeno delay para garantir que a página esteja totalmente carregada
+    console.log('Aguardando renderização da página...');
+    await page.waitForTimeout(2000);
 
-    let boundingBox;
-    try {
-      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
-    } catch (e) {
-      boundingBox = null;
-    }
+    // Captura o screenshot da página inteira
+    console.log('Capturando screenshot após o clique...');
+    await page.screenshot({ path: 'resultados.png', fullPage: true });
 
-    if (boundingBox) {
-      await page.screenshot({
-        path: 'resultados.png',
-        clip: {
-          x: Math.max(0, boundingBox.x),
-          y: Math.max(0, boundingBox.y),
-          width: Math.min(boundingBox.width, 1920 - boundingBox.x),
-          height: Math.min(boundingBox.height, 1080 - boundingBox.y)
-        }
-      });
-    } else {
-      await page.screenshot({ path: 'resultados_full.png' });
-    }
-
-    console.log('Print capturado com sucesso');
-    const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
+    console.log('Screenshot capturado com sucesso');
+    const base64Image = await page.screenshot({ encoding: 'base64', type: 'png', fullPage: true });
     if (base64Image) {
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify({ status: 'success', image: base64Image }));
     } else {
       throw new Error('Falha ao gerar a imagem Base64');
     }
+
     await browser.close();
   } catch (error) {
     console.log('Erro detectado:', error.message);
