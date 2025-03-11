@@ -20,112 +20,83 @@ app.post('/verificar', async (req, res) => {
   let browser;
   try {
     console.log('Iniciando o navegador...');
-    browser = await puppeteer.launch({ 
+    browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      timeout: 0 // Remove timeout para evitar falhas prematuras
     });
     const page = await browser.newPage();
 
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
 
     console.log('Carregando a página do TSE...');
-    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
+    await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', {
       waitUntil: 'networkidle2',
-      timeout: 70000 
+      timeout: 70000
     });
 
     console.log('Esperando o formulário de login...');
-    await page.waitForSelector('input', { timeout: 9000 });
-
-    async function typeSlowly(selector, text) {
-      for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 1200) + 50 });
-      }
+    const inputElements = await page.$$('input');
+    if (inputElements.length < 3) {
+      throw new Error('Número insuficiente de campos de input encontrados');
     }
 
     console.log('Preenchendo CPF...');
-    await typeSlowly('input', cpf);
+    await page.type('input', cpf, { delay: 100 });
 
     console.log('Preenchendo Nome da Mãe...');
-    const inputs = await page.$$('input');
-    if (inputs.length < 2) {
-      await page.screenshot({ path: 'debug_mae_error.png' });
-      throw new Error('Campo Nome da Mãe não encontrado');
-    }
-    await typeSlowly('input:nth-child(2)', nome_mae);
+    await page.type(inputElements[1], nome_mae, { delay: 100 });
 
     console.log('Preenchendo Data de Nascimento...');
-    if (inputs.length < 3) {
-      await page.screenshot({ path: 'debug_data_error.png' });
-      throw new Error('Campo Data de Nascimento não encontrado');
-    }
-    await typeSlowly('input:nth-child(3)', data_nascimento);
+    await page.type(inputElements[2], data_nascimento, { delay: 100 });
 
     console.log('Clicando no botão "Entrar"...');
     await page.evaluate(() => {
-      let button = document.querySelector('#modal > div > div > div.modal-corpo > div.login-form-row > form > div.menu-botoes > button.btn-tse');
-      if (!button) button = document.querySelector('button.btn-tse');
-      if (!button) button = document.querySelector('button[type="submit"]');
-      if (!button) button = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Entrar');
-      if (!button) button = document.querySelector('button');
+      let button = document.querySelector('button.btn-tse') || document.querySelector('button[type="submit"]');
       if (button) {
-        button.scrollIntoView({ behavior: 'auto', block: 'center' });
         button.click();
-        button.dispatchEvent(new Event('click', { bubbles: true }));
+      } else {
+        throw new Error('Botão "Entrar" não encontrado');
       }
     });
-    await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando os resultados carregarem na tela...');
-    await new Promise(resolve => setTimeout(resolve, 600));
+    console.log('Esperando os resultados carregarem...');
+    await page.waitForSelector('div.container-detalhes-ov', { timeout: 10000 }).catch(() => {
+      throw new Error('Container de resultados não carregou');
+    });
 
     console.log('Capturando print do container de resultados...');
-    const containerSelector = 'div.container-detalhes-ov';
-    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
-    let container = await page.$(containerSelector);
+    const container = await page.$('div.container-detalhes-ov');
     if (!container) {
-      container = await page.evaluateHandle((xpath) => {
-        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      }, containerXPath);
-      if (!container) {
-        await page.screenshot({ path: 'debug_no_results.png' });
-        throw new Error('Container dos resultados não encontrado');
-      }
+      throw new Error('Container dos resultados não encontrado');
     }
-    let boundingBox;
-    try {
-      boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
-    } catch (e) {
-      boundingBox = null;
-    }
+    const boundingBox = await container.boundingBox();
     if (boundingBox) {
       await page.screenshot({
         path: 'resultados.png',
         clip: {
-          x: Math.max(0, boundingBox.x),
-          y: Math.max(0, boundingBox.y),
-          width: Math.min(boundingBox.width, 1920 - boundingBox.x),
-          height: Math.min(boundingBox.height, 1080 - boundingBox.y)
+          x: boundingBox.x,
+          y: boundingBox.y,
+          width: boundingBox.width,
+          height: boundingBox.height
         }
       });
     } else {
       await page.screenshot({ path: 'resultados_full.png' });
     }
 
-    console.log('Print capturado com sucesso');
     const base64Image = await page.screenshot({ encoding: 'base64', type: 'png' });
     if (base64Image) {
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ status: 'success', image: base64Image }));
+      res.json({ status: 'success', image: base64Image }); // Use res.json diretamente
     } else {
       throw new Error('Falha ao gerar a imagem Base64');
     }
-    await browser.close();
   } catch (error) {
-    console.log('Erro detectado:', error.message);
+    console.error('Erro detectado:', error.message);
     if (browser) await browser.close();
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({ status: 'error', message: error.message }));
+    res.status(500).json({ status: 'error', message: error.message }); // Garanta resposta JSON em caso de erro
+  } finally {
+    if (browser) await browser.close();
   }
 });
 
