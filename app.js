@@ -31,7 +31,7 @@ app.post('/verificar', async (req, res) => {
     console.log('Carregando a página do TSE...');
     await page.goto('https://www.tse.jus.br/servicos-eleitorais/autoatendimento-eleitoral#/atendimento-eleitor/onde-votar', { 
       waitUntil: 'networkidle2',
-      timeout: 80000 
+      timeout: 70000 
     });
 
     console.log('Esperando o formulário de login...');
@@ -39,7 +39,7 @@ app.post('/verificar', async (req, res) => {
 
     async function typeSlowly(selector, text) {
       for (const char of text) {
-        await page.type(selector, char, { delay: Math.floor(Math.random() * 900) + 50 });
+        await page.type(selector, char, { delay: Math.floor(Math.random() * 1200) + 50 });
       }
     }
 
