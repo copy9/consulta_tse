@@ -1,4 +1,8 @@
-import webbrowser
+# requirements.txt
+# flask
+# selenium
+# webdriver-manager
+
 from flask import Flask, request, render_template, jsonify
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -26,7 +30,7 @@ def run_selenium(cpf, nome_mae, data_nascimento):
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--no-sandbox')
     options.add_argument('--incognito')
-    options.add_argument('--headless')  # Adicionado para rodar em segundo plano
+    options.add_argument('--headless')  # Adicionado pra rodar no Render
     user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
     options.add_argument(f'user-agent={user_agent}')
 
@@ -146,7 +150,6 @@ def run_selenium(cpf, nome_mae, data_nascimento):
         return {"status": "error", "message": str(e)}
 
     finally:
-        print("Navegador permanecerá aberto. Feche manualmente ou use Ctrl+C no terminal.")
         if driver:
             driver.quit()
 
@@ -167,20 +170,14 @@ def verificar():
         return jsonify({"status": "error", "message": "Por favor, preencha todos os campos!"}), 400
 
     dados_prontos = True
-    # Usando threading para busca assíncrona e esperando o resultado
     resultados = [None]
     def run_and_store():
         resultados[0] = run_selenium(cpf, nome_mae, data_nascimento)
 
     thread = threading.Thread(target=run_and_store, daemon=True)
     thread.start()
-    thread.join()  # Espera a busca terminar
+    thread.join()
     return jsonify(resultados[0])
 
 if __name__ == '__main__':
-    url = 'http://localhost:5000'
-    webbrowser.open(url)
-    app.run(debug=True)
-
-if driver:
-    driver.quit()
+    app.run(host='0.0.0.0', port=5000, debug=False)
