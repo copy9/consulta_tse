@@ -76,30 +76,28 @@ app.post('/verificar', async (req, res) => {
     });
     await page.screenshot({ path: 'debug_before_navigation.png' });
 
-    console.log('Esperando o elemento específico carregar...');
+    console.log('Esperando os resultados carregarem na tela...');
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    console.log('Capturando print do container de resultados...');
     const containerSelector = 'div.container-detalhes-ov';
-    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div/app-onde-votar/div/div[1]/app-box-local-votacao/div';
-    
-    // Aguarda o elemento específico estar presente na página
-    await page.waitForSelector(containerSelector, { timeout: 10000 }).catch(async () => {
-      await page.waitForXPath(containerXPath, { timeout: 10000 });
-    });
-
-    console.log('Elemento encontrado, capturando print...');
-    const container = await page.$(containerSelector) || await page.$x(containerXPath).then(elements => elements[0]);
-
+    const containerXPath = '/html/body/main/div/div/div[3]/div/div/app-root/div';
+    let container = await page.$(containerSelector);
     if (!container) {
-      await page.screenshot({ path: 'debug_no_results.png' });
-      throw new Error('Container dos resultados não encontrado');
+      container = await page.evaluateHandle((xpath) => {
+        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      }, containerXPath);
+      if (!container) {
+        await page.screenshot({ path: 'debug_no_results.png' });
+        throw new Error('Container dos resultados não encontrado');
+      }
     }
-
     let boundingBox;
     try {
       boundingBox = await (container.asElement() ? container.asElement().boundingBox() : container.boundingBox());
     } catch (e) {
       boundingBox = null;
     }
-
     if (boundingBox) {
       await page.screenshot({
         path: 'resultados.png',
